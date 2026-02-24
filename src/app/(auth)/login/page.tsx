@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +10,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Baby } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // Handle hash fragments from Supabase redirects (invite links, errors)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    const params = new URLSearchParams(hash.substring(1));
+
+    // If there's an error in the hash, show it
+    const hashError = params.get("error_description");
+    if (hashError) {
+      setError("Link expirado ou inválido. Solicite um novo link abaixo.");
+      window.history.replaceState(null, "", "/login");
+      return;
+    }
+
+    // If there's an access_token, the session is being set by Supabase client automatically
+    const accessToken = params.get("access_token");
+    if (accessToken) {
+      // Supabase client library picks up hash tokens automatically
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          router.push("/registrar");
+        }
+      });
+    }
+  }, [router]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -22,28 +52,16 @@ export default function LoginPage() {
 
     const supabase = createClient();
 
-    // Check if email is allowed
-    const { data: allowed } = await supabase
-      .from("allowed_emails")
-      .select("email")
-      .eq("email", email.toLowerCase().trim())
-      .single();
-
-    if (!allowed) {
-      setError("Email não autorizado.");
-      setLoading(false);
-      return;
-    }
-
     const { error: signInError } = await supabase.auth.signInWithOtp({
       email: email.toLowerCase().trim(),
       options: {
+        shouldCreateUser: false,
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
     if (signInError) {
-      setError("Erro ao enviar o link. Tente novamente.");
+      setError("Email não autorizado ou erro ao enviar o link.");
     } else {
       setMessage("Verifique seu email! Enviamos um link de acesso.");
     }

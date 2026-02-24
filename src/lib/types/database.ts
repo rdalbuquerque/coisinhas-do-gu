@@ -41,9 +41,3 @@ export interface EnxovalItem {
   target_quantity: number;
   clothing_types?: ClothingType;
 }
-
-export interface AllowedEmail {
-  id: string;
-  email: string;
-  name: string;
-}
