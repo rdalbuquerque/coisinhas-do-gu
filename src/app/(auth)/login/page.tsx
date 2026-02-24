@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,58 +12,26 @@ import { Baby } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  // Handle hash fragments from Supabase redirects (invite links, errors)
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) return;
-
-    const params = new URLSearchParams(hash.substring(1));
-
-    // If there's an error in the hash, show it
-    const hashError = params.get("error_description");
-    if (hashError) {
-      setError("Link expirado ou inválido. Solicite um novo link abaixo.");
-      window.history.replaceState(null, "", "/login");
-      return;
-    }
-
-    // If there's an access_token, the session is being set by Supabase client automatically
-    const accessToken = params.get("access_token");
-    if (accessToken) {
-      // Supabase client library picks up hash tokens automatically
-      const supabase = createClient();
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          router.push("/registrar");
-        }
-      });
-    }
-  }, [router]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
     setError("");
 
     const supabase = createClient();
 
-    const { error: signInError } = await supabase.auth.signInWithOtp({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email: email.toLowerCase().trim(),
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      password,
     });
 
     if (signInError) {
-      setError("Email não autorizado ou erro ao enviar o link.");
+      setError("Email ou senha incorretos.");
     } else {
-      setMessage("Verifique seu email! Enviamos um link de acesso.");
+      router.push("/registrar");
     }
 
     setLoading(false);
@@ -78,7 +46,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl">Coisinhas do Gu</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Entre com seu email para acessar
+            Entre com seu email e senha
           </p>
         </CardHeader>
         <CardContent>
@@ -94,12 +62,20 @@ export default function LoginPage() {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Sua senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Enviando..." : "Enviar link de acesso"}
+              {loading ? "Entrando..." : "Entrar"}
             </Button>
-            {message && (
-              <p className="text-sm text-center text-green-600">{message}</p>
-            )}
             {error && (
               <p className="text-sm text-center text-destructive">{error}</p>
             )}
