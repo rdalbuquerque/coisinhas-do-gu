@@ -30,6 +30,50 @@ export async function updateClothingType(id: string, name: string) {
   revalidatePath("/inventario");
 }
 
+export async function ensureClothingTypes(
+  names: string[]
+): Promise<{ name: string; id: string }[]> {
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("clothing_types")
+    .select("id, name");
+
+  const existingMap = new Map(
+    (existing || []).map((t) => [t.name.toLowerCase(), t])
+  );
+
+  const result: { name: string; id: string }[] = [];
+  const toCreate: string[] = [];
+
+  for (const name of names) {
+    const found = existingMap.get(name.toLowerCase());
+    if (found) {
+      result.push({ name: found.name, id: found.id });
+    } else {
+      toCreate.push(name);
+    }
+  }
+
+  if (toCreate.length > 0) {
+    const { data: created, error } = await supabase
+      .from("clothing_types")
+      .insert(toCreate.map((name) => ({ name })))
+      .select("id, name");
+
+    if (error) throw new Error(error.message);
+
+    for (const t of created || []) {
+      result.push({ name: t.name, id: t.id });
+    }
+
+    revalidatePath("/tipos");
+    revalidatePath("/registrar");
+  }
+
+  return result;
+}
+
 export async function deleteClothingType(id: string) {
   const supabase = await createClient();
 
