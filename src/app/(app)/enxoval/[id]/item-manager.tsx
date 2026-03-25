@@ -21,6 +21,7 @@ import { ClothingType, SizePeriod } from "@/lib/types/database";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface ExistingItem {
   id: string;
@@ -48,10 +49,42 @@ export function EnxovalItemManager({
   const [newSizeId, setNewSizeId] = useState("");
   const [newQty, setNewQty] = useState(1);
   const [loading, setLoading] = useState<string | null>(null);
+  const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
 
   const usedKeys = new Set(
     existingItems.map((i) => `${i.clothing_type_id}-${i.size_period_id}`)
   );
+
+  // Extract unique sizes and types from existing items
+  const presentSizeIds = new Set(existingItems.map((i) => i.size_period_id));
+  const presentTypeIds = new Set(existingItems.map((i) => i.clothing_type_id));
+  const presentSizes = sizePeriods.filter((s) => presentSizeIds.has(s.id));
+  const presentTypes = clothingTypes.filter((t) => presentTypeIds.has(t.id));
+
+  const filtered = existingItems.filter((item) => {
+    if (selectedSizes.size > 0 && !selectedSizes.has(item.size_period_id)) return false;
+    if (selectedTypes.size > 0 && !selectedTypes.has(item.clothing_type_id)) return false;
+    return true;
+  });
+
+  function toggleSize(id: string) {
+    setSelectedSizes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleType(id: string) {
+    setSelectedTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function handleAdd() {
     if (!newTypeId || !newSizeId) return;
@@ -105,38 +138,67 @@ export function EnxovalItemManager({
 
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-semibold">Gerenciar itens</h2>
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          {presentSizes.map((s) => (
+            <Badge
+              key={s.id}
+              variant={selectedSizes.has(s.id) ? "default" : "outline"}
+              className={cn("cursor-pointer transition-colors")}
+              onClick={() => toggleSize(s.id)}
+            >
+              {s.name}
+            </Badge>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {presentTypes.map((t) => (
+            <Badge
+              key={t.id}
+              variant={selectedTypes.has(t.id) ? "default" : "outline"}
+              className={cn("cursor-pointer transition-colors text-xs")}
+              onClick={() => toggleType(t.id)}
+            >
+              {t.name}
+            </Badge>
+          ))}
+        </div>
+      </div>
 
-      {existingItems.map((item) => {
-        const type = clothingTypes.find((t) => t.id === item.clothing_type_id);
-        return (
-          <Card key={item.id}>
-            <CardContent className="flex items-center gap-2 p-3">
-              <span className="flex-1 text-sm">{type?.name}</span>
-              <Badge variant="outline" className="shrink-0">
-                {item.size_name}
-              </Badge>
-              <Input
-                type="number"
-                min={1}
-                defaultValue={item.target_quantity}
-                className="w-20"
-                onBlur={(e) =>
-                  handleUpdateQty(item.id, Number(e.target.value))
-                }
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemove(item.id)}
-                disabled={loading === item.id}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum item encontrado.</p>
+      ) : (
+        filtered.map((item) => {
+          const type = clothingTypes.find((t) => t.id === item.clothing_type_id);
+          return (
+            <Card key={item.id}>
+              <CardContent className="flex items-center gap-2 p-3">
+                <span className="flex-1 text-sm">{type?.name}</span>
+                <Badge variant="outline" className="shrink-0">
+                  {item.size_name}
+                </Badge>
+                <Input
+                  type="number"
+                  min={1}
+                  defaultValue={item.target_quantity}
+                  className="w-20"
+                  onBlur={(e) =>
+                    handleUpdateQty(item.id, Number(e.target.value))
+                  }
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemove(item.id)}
+                  disabled={loading === item.id}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })
+      )}
 
       <Card>
         <CardContent className="flex items-center gap-2 p-3">

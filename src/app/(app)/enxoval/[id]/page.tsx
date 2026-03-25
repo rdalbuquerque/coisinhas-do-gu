@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EnxovalProgress } from "@/components/enxoval-progress";
+import { EnxovalItemsList } from "./items-list";
 import { DeleteEnxovalButton } from "./delete-button";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
@@ -34,17 +34,41 @@ export default async function EnxovalDetailPage({ params }: Props) {
     clothesCount.set(key, (clothesCount.get(key) || 0) + 1);
   });
 
-  const items = enxoval.enxoval_items || [];
-  const totalTarget = items.reduce(
-    (sum: number, i: { target_quantity: number }) => sum + i.target_quantity,
-    0
+  const items = (enxoval.enxoval_items || []).map(
+    (item: {
+      id: string;
+      clothing_type_id: string;
+      size_period_id: string;
+      target_quantity: number;
+      clothing_types?: { name: string };
+      size_periods?: { name: string };
+    }) => {
+      const key = `${item.clothing_type_id}-${item.size_period_id}`;
+      return {
+        id: item.id,
+        clothing_type_id: item.clothing_type_id,
+        size_period_id: item.size_period_id,
+        target_quantity: item.target_quantity,
+        type_name: item.clothing_types?.name || "",
+        size_name: item.size_periods?.name || "",
+        current: Math.min(clothesCount.get(key) || 0, item.target_quantity),
+      };
+    }
   );
-  const totalCurrent = items.reduce(
-    (sum: number, i: { clothing_type_id: string; size_period_id: string; target_quantity: number }) => {
-      const key = `${i.clothing_type_id}-${i.size_period_id}`;
-      return sum + Math.min(clothesCount.get(key) || 0, i.target_quantity);
-    },
-    0
+
+  const totalTarget = items.reduce((sum: number, i: { target_quantity: number }) => sum + i.target_quantity, 0);
+  const totalCurrent = items.reduce((sum: number, i: { current: number }) => sum + i.current, 0);
+
+  // Extract unique sizes and types present in this enxoval
+  const sizeMap = new Map<string, string>();
+  const typeMap = new Map<string, string>();
+  for (const item of items) {
+    sizeMap.set(item.size_period_id, item.size_name);
+    typeMap.set(item.clothing_type_id, item.type_name);
+  }
+  const sizes = Array.from(sizeMap, ([id, name]) => ({ id, name }));
+  const types = Array.from(typeMap, ([id, name]) => ({ id, name })).sort((a, b) =>
+    a.name.localeCompare(b.name)
   );
 
   return (
@@ -76,39 +100,7 @@ export default async function EnxovalDetailPage({ params }: Props) {
         />
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Itens</h2>
-        {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum item definido.</p>
-        ) : (
-          items.map(
-            (item: {
-              id: string;
-              clothing_type_id: string;
-              size_period_id: string;
-              target_quantity: number;
-              clothing_types?: { name: string };
-              size_periods?: { name: string };
-            }) => {
-              const key = `${item.clothing_type_id}-${item.size_period_id}`;
-              return (
-                <div key={item.id} className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <EnxovalProgress
-                      label={item.clothing_types?.name || ""}
-                      current={clothesCount.get(key) || 0}
-                      target={item.target_quantity}
-                    />
-                  </div>
-                  <Badge variant="outline" className="shrink-0">
-                    {item.size_periods?.name}
-                  </Badge>
-                </div>
-              );
-            }
-          )
-        )}
-      </div>
+      <EnxovalItemsList items={items} sizes={sizes} types={types} />
     </div>
   );
 }
