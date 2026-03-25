@@ -8,10 +8,14 @@ import { Plus } from "lucide-react";
 export default async function EnxovalListPage() {
   const supabase = await createClient();
 
-  const { data: enxovais } = await supabase
+  const { data: enxovais, error: enxovaisError } = await supabase
     .from("enxovais")
     .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
     .order("created_at", { ascending: false });
+
+  if (enxovaisError) {
+    console.error("Enxovais query error:", enxovaisError);
+  }
 
   // Get all clothes for counting
   const { data: clothes } = await supabase

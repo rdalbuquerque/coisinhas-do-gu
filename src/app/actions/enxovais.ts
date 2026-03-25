@@ -9,13 +9,20 @@ export async function createEnxoval(data: {
 }) {
   const supabase = await createClient();
 
+  console.log("Creating enxoval:", { name: data.name, itemCount: data.items.length });
+
   const { data: enxoval, error } = await supabase
     .from("enxovais")
     .insert({ name: data.name })
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Error creating enxoval:", error);
+    throw new Error(error.message);
+  }
+
+  console.log("Enxoval created:", enxoval.id);
 
   if (data.items.length > 0) {
     const itemsToInsert = data.items.map((item) => ({
@@ -25,11 +32,16 @@ export async function createEnxoval(data: {
       target_quantity: item.target_quantity,
     }));
 
+    console.log("Inserting items:", itemsToInsert.length);
+
     const { error: itemsError } = await supabase
       .from("enxoval_items")
       .insert(itemsToInsert);
 
-    if (itemsError) throw new Error(itemsError.message);
+    if (itemsError) {
+      console.error("Error inserting items:", itemsError);
+      throw new Error(itemsError.message);
+    }
   }
 
   revalidatePath("/enxoval");
