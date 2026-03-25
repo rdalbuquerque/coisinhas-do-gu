@@ -394,7 +394,7 @@ export default function NovoEnxovalPage() {
             Criando...
           </>
         ) : (
-          `Criar enxoval (${reviewItems.length} itens)`
+          `Criar enxoval (${reviewItems.reduce((sum, i) => sum + i.target_quantity, 0)} peças)`
         )}
       </Button>
     </div>

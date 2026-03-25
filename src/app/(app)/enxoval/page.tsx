@@ -71,7 +71,7 @@ export default async function EnxovalListPage() {
                   <CardContent className="space-y-2">
                     <Progress value={percentage} className="h-2" />
                     <p className="text-sm text-muted-foreground">
-                      {totalCurrent}/{totalTarget} itens
+                      {totalCurrent}/{totalTarget} peças
                     </p>
                   </CardContent>
                 </Card>
