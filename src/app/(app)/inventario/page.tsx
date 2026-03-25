@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ClothingCard } from "@/components/clothing-card";
 import { FilterBar } from "@/components/filter-bar";
+import { InventorySummary } from "@/components/inventory-summary";
 import { Clothing } from "@/lib/types/database";
 import { Suspense } from "react";
 
@@ -38,6 +39,12 @@ export default async function InventarioPage({ searchParams }: Props) {
           {items.length} peça{items.length !== 1 ? "s" : ""}
         </span>
       </div>
+
+      <InventorySummary
+        items={items}
+        clothingTypes={clothingTypes || []}
+        sizePeriods={sizePeriods || []}
+      />
 
       <Suspense fallback={null}>
         <FilterBar
