@@ -40,6 +40,7 @@ export function ClothingForm({
   const [season, setSeason] = useState<Season>(editing?.season || "neutro");
   const [notes, setNotes] = useState(editing?.notes || "");
   const [loading, setLoading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,7 +101,7 @@ export function ClothingForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label>Foto</Label>
-        <PhotoCapture value={photo} onChange={setPhoto} />
+        <PhotoCapture value={photo} onChange={setPhoto} onCompressingChange={setCompressing} />
       </div>
 
       <div className="space-y-2">
@@ -163,8 +164,13 @@ export function ClothingForm({
         />
       </div>
 
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? (
+      <Button type="submit" className="w-full" disabled={loading || compressing}>
+        {compressing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Comprimindo foto...
+          </>
+        ) : loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Salvando...

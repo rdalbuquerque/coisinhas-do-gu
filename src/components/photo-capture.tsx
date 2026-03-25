@@ -9,9 +9,10 @@ import Image from "next/image";
 interface PhotoCaptureProps {
   value: File | string | null;
   onChange: (file: File | null) => void;
+  onCompressingChange?: (compressing: boolean) => void;
 }
 
-export function PhotoCapture({ value, onChange }: PhotoCaptureProps) {
+export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCaptureProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(
     typeof value === "string" ? value : null
@@ -23,6 +24,7 @@ export function PhotoCapture({ value, onChange }: PhotoCaptureProps) {
     if (!file) return;
 
     setCompressing(true);
+    onCompressingChange?.(true);
     try {
       const compressed = await compressImage(file);
       onChange(compressed);
@@ -32,6 +34,7 @@ export function PhotoCapture({ value, onChange }: PhotoCaptureProps) {
       setPreview(URL.createObjectURL(file));
     }
     setCompressing(false);
+    onCompressingChange?.(false);
   }
 
   function handleRemove() {
