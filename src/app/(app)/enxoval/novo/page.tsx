@@ -307,7 +307,7 @@ export default function NovoEnxovalPage() {
                 {size.name}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {items.length} {items.length === 1 ? "item" : "itens"}
+                {items.reduce((sum, i) => sum + i.target_quantity, 0)} peças
               </span>
             </div>
             {items.map((item) => (
