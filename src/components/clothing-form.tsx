@@ -32,7 +32,7 @@ export function ClothingForm({
   editing,
 }: ClothingFormProps) {
   const router = useRouter();
-  const [photo, setPhoto] = useState<File | string | null>(
+  const [photo, setPhoto] = useState<Blob | string | null>(
     editing?.photo_url || null
   );
   const [typeId, setTypeId] = useState(editing?.clothing_type_id || "");
@@ -53,13 +53,15 @@ export function ClothingForm({
     try {
       let photoUrl = typeof photo === "string" ? photo : null;
 
-      // Upload new photo if it's a File
-      if (photo instanceof File) {
+      // Upload new photo if it's a File or Blob (Web Worker compression
+      // may return a Blob that fails instanceof File checks)
+      if (photo instanceof Blob) {
         const supabase = createClient();
         const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+        const contentType = photo.type || "image/jpeg";
         const { error: uploadError } = await supabase.storage
           .from("clothes-photos")
-          .upload(fileName, photo, { contentType: photo.type });
+          .upload(fileName, photo, { contentType });
 
         if (uploadError) throw new Error(uploadError.message);
 

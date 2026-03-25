@@ -7,8 +7,8 @@ import { compressImage } from "@/lib/image-utils";
 import Image from "next/image";
 
 interface PhotoCaptureProps {
-  value: File | string | null;
-  onChange: (file: File | null) => void;
+  value: Blob | string | null;
+  onChange: (file: Blob | null) => void;
   onCompressingChange?: (compressing: boolean) => void;
 }
 
