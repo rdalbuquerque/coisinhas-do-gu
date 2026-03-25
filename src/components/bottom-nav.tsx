@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Camera, LayoutGrid, ClipboardCheck, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 const tabs = [
   { href: "/registrar", label: "Registrar", icon: Camera },
@@ -14,6 +16,20 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  function handleNav(e: React.MouseEvent, href: string) {
+    e.preventDefault();
+    setPendingHref(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  }
+
+  // Clear pending state when navigation completes
+  const activePending = isPending ? pendingHref : null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card">
@@ -21,10 +37,12 @@ export function BottomNav() {
         {tabs.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href || pathname.startsWith(href + "/");
+          const isLoading = activePending === href;
           return (
             <Link
               key={href}
               href={href}
+              onClick={(e) => handleNav(e, href)}
               className={cn(
                 "flex flex-col items-center gap-1 px-3 py-2 text-xs transition-colors",
                 isActive
@@ -32,7 +50,12 @@ export function BottomNav() {
                   : "text-muted-foreground"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon
+                className={cn(
+                  "h-5 w-5",
+                  isLoading && "animate-pulse"
+                )}
+              />
               <span>{label}</span>
             </Link>
           );
