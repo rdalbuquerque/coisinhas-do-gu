@@ -64,6 +64,7 @@ export default function NovoEnxovalPage() {
   const [clothingTypes, setClothingTypes] = useState<ClothingType[]>([]);
   const [sizePeriods, setSizePeriods] = useState<SizePeriod[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingTemplateId, setLoadingTemplateId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<SuggestedEnxoval | null>(null);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
 
@@ -85,6 +86,7 @@ export default function NovoEnxovalPage() {
 
   async function selectTemplate(template: SuggestedEnxoval) {
     setLoading(true);
+    setLoadingTemplateId(template.id);
     try {
       const typeNames = template.items.map((i) => i.clothing_type_name);
       const resolvedTypes = await ensureClothingTypes(typeNames);
@@ -136,6 +138,7 @@ export default function NovoEnxovalPage() {
       toast.error(err instanceof Error ? err.message : "Erro ao aplicar sugestão.");
     }
     setLoading(false);
+    setLoadingTemplateId(null);
   }
 
   function updateReviewItem(index: number, qty: number) {
@@ -230,38 +233,40 @@ export default function NovoEnxovalPage() {
         </p>
 
         <div className="space-y-3">
-          {SUGGESTED_ENXOVAIS.map((template) => (
-            <Card
-              key={template.id}
-              className={`cursor-pointer border-2 transition-all hover:shadow-md ${SEASON_COLOR[template.season]}`}
-              onClick={() => selectTemplate(template)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  {SEASON_ICON[template.season]}
-                  <CardTitle className="text-lg">{template.name}</CardTitle>
-                </div>
-                <CardDescription>{template.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-1.5">
-                  {template.items.map((item) => (
-                    <Badge key={item.clothing_type_name} variant="secondary" className="text-xs">
-                      {item.clothing_type_name}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {SUGGESTED_ENXOVAIS.map((template) => {
+            const isLoading = loadingTemplateId === template.id;
+            return (
+              <Card
+                key={template.id}
+                className={`cursor-pointer border-2 transition-all hover:shadow-md ${SEASON_COLOR[template.season]} ${loading ? "pointer-events-none opacity-60" : ""} ${isLoading ? "!opacity-100 ring-2 ring-primary" : ""}`}
+                onClick={() => !loading && selectTemplate(template)}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    {isLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      SEASON_ICON[template.season]
+                    )}
+                    <CardTitle className="text-lg">{template.name}</CardTitle>
+                  </div>
+                  <CardDescription>
+                    {isLoading ? "Preparando sugestão..." : template.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-1.5">
+                    {template.items.map((item) => (
+                      <Badge key={item.clothing_type_name} variant="secondary" className="text-xs">
+                        {item.clothing_type_name}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-
-        {loading && (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-sm text-muted-foreground">Preparando sugestão...</span>
-          </div>
-        )}
       </div>
     );
   }
