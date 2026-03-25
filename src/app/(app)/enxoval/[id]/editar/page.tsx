@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { EnxovalItemManager } from "../item-manager";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -27,7 +30,18 @@ export default async function EditarEnxovalPage({ params }: Props) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Editar: {enxoval.name}</h1>
+      <div className="flex items-center gap-2">
+        <Button asChild variant="ghost" size="icon">
+          <Link href={`/enxoval/${id}`}>
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold">Editar: {enxoval.name}</h1>
+      </div>
+
+      <p className="text-sm text-muted-foreground">
+        As alterações são salvas automaticamente.
+      </p>
 
       <EnxovalItemManager
         enxovalId={id}
