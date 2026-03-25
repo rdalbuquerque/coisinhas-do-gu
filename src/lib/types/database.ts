@@ -28,9 +28,7 @@ export interface Clothing {
 export interface Enxoval {
   id: string;
   name: string;
-  size_period_id: string;
   created_at: string;
-  size_periods?: SizePeriod;
   enxoval_items?: EnxovalItem[];
 }
 
@@ -38,6 +36,8 @@ export interface EnxovalItem {
   id: string;
   enxoval_id: string;
   clothing_type_id: string;
+  size_period_id: string;
   target_quantity: number;
   clothing_types?: ClothingType;
+  size_periods?: SizePeriod;
 }

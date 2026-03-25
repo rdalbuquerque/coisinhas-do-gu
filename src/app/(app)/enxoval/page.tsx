@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -11,7 +10,7 @@ export default async function EnxovalListPage() {
 
   const { data: enxovais } = await supabase
     .from("enxovais")
-    .select("*, size_periods(*), enxoval_items(*, clothing_types(*))")
+    .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
     .order("created_at", { ascending: false });
 
   // Get all clothes for counting
@@ -50,8 +49,8 @@ export default async function EnxovalListPage() {
               0
             );
             const totalCurrent = items.reduce(
-              (sum: number, i: { clothing_type_id: string; target_quantity: number }) => {
-                const key = `${i.clothing_type_id}-${enxoval.size_period_id}`;
+              (sum: number, i: { clothing_type_id: string; size_period_id: string; target_quantity: number }) => {
+                const key = `${i.clothing_type_id}-${i.size_period_id}`;
                 return sum + Math.min(clothesMap.get(key) || 0, i.target_quantity);
               },
               0
@@ -63,12 +62,7 @@ export default async function EnxovalListPage() {
               <Link key={enxoval.id} href={`/enxoval/${enxoval.id}`}>
                 <Card className="transition-shadow hover:shadow-md">
                   <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{enxoval.name}</CardTitle>
-                      <Badge variant="secondary">
-                        {enxoval.size_periods?.name}
-                      </Badge>
-                    </div>
+                    <CardTitle className="text-lg">{enxoval.name}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <Progress value={percentage} className="h-2" />

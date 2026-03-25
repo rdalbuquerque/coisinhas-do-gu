@@ -2,13 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { createEnxoval } from "@/app/actions/enxovais";
 import { ensureClothingTypes } from "@/app/actions/clothing-types";
-import { SizePeriod } from "@/lib/types/database";
+import { ClothingType, SizePeriod } from "@/lib/types/database";
 import {
   SUGGESTED_ENXOVAIS,
   SuggestedEnxoval,
@@ -17,16 +25,25 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
+  Plus,
+  Trash2,
   Loader2,
   Sparkles,
   ArrowLeft,
   Snowflake,
   Sun,
   CloudSun,
-  Check,
 } from "lucide-react";
 
-type Step = "choose" | "sizes";
+interface ReviewItem {
+  clothing_type_id: string;
+  clothing_type_name: string;
+  size_period_id: string;
+  size_name: string;
+  target_quantity: number;
+}
+
+type Step = "choose" | "review";
 
 const SEASON_ICON: Record<string, React.ReactNode> = {
   inverno: <Snowflake className="h-5 w-5" />,
@@ -43,19 +60,27 @@ const SEASON_COLOR: Record<string, string> = {
 export default function NovoEnxovalPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("choose");
+  const [name, setName] = useState("");
+  const [clothingTypes, setClothingTypes] = useState<ClothingType[]>([]);
   const [sizePeriods, setSizePeriods] = useState<SizePeriod[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<SuggestedEnxoval | null>(null);
-  const [selectedSizeIds, setSelectedSizeIds] = useState<Set<string>>(new Set());
-  const [typeMap, setTypeMap] = useState<Map<string, string>>(new Map());
+  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
+
+  // New item form
+  const [newTypeId, setNewTypeId] = useState("");
+  const [newSizeId, setNewSizeId] = useState("");
+  const [newQty, setNewQty] = useState(1);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase
-      .from("size_periods")
-      .select("*")
-      .order("display_order")
-      .then(({ data }) => setSizePeriods(data || []));
+    Promise.all([
+      supabase.from("clothing_types").select("*").order("name"),
+      supabase.from("size_periods").select("*").order("display_order"),
+    ]).then(([types, sizes]) => {
+      setClothingTypes(types.data || []);
+      setSizePeriods(sizes.data || []);
+    });
   }, []);
 
   async function selectTemplate(template: SuggestedEnxoval) {
@@ -64,77 +89,135 @@ export default function NovoEnxovalPage() {
       const typeNames = template.items.map((i) => i.clothing_type_name);
       const resolvedTypes = await ensureClothingTypes(typeNames);
 
-      const newTypeMap = new Map(
+      const typeMap = new Map(
         resolvedTypes.map((t) => [t.name.toLowerCase(), t.id])
       );
-      setTypeMap(newTypeMap);
+
+      // Refresh clothing types list after possible creation
+      const supabase = createClient();
+      const { data: freshTypes } = await supabase
+        .from("clothing_types")
+        .select("*")
+        .order("name");
+      if (freshTypes) setClothingTypes(freshTypes);
+
+      const { data: sizes } = await supabase
+        .from("size_periods")
+        .select("*")
+        .order("display_order");
+      const allSizes = sizes || sizePeriods;
+      if (sizes) setSizePeriods(sizes);
+
+      // Expand template: every item × every size
+      const items: ReviewItem[] = [];
+      for (const templateItem of template.items) {
+        const typeId = typeMap.get(templateItem.clothing_type_name.toLowerCase());
+        if (!typeId) continue;
+
+        for (const size of allSizes) {
+          const qty = getQuantityForSize(templateItem, size.name);
+          if (qty > 0) {
+            items.push({
+              clothing_type_id: typeId,
+              clothing_type_name: templateItem.clothing_type_name,
+              size_period_id: size.id,
+              size_name: size.name,
+              target_quantity: qty,
+            });
+          }
+        }
+      }
 
       setSelectedTemplate(template);
-      setSelectedSizeIds(new Set());
-      setStep("sizes");
+      setName(template.name);
+      setReviewItems(items);
+      setStep("review");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao aplicar sugestão.");
     }
     setLoading(false);
   }
 
-  function toggleSize(sizeId: string) {
-    setSelectedSizeIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(sizeId)) {
-        next.delete(sizeId);
-      } else {
-        next.add(sizeId);
-      }
-      return next;
+  function updateReviewItem(index: number, qty: number) {
+    if (qty < 1) return;
+    setReviewItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], target_quantity: qty };
+      return updated;
     });
   }
 
-  function getSizeName(sizeId: string): string {
-    return sizePeriods.find((s) => s.id === sizeId)?.name || "";
+  function removeReviewItem(index: number) {
+    setReviewItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function handleCreateFromTemplate() {
-    if (!selectedTemplate || selectedSizeIds.size === 0) {
-      toast.error("Selecione pelo menos um tamanho.");
+  function addReviewItem() {
+    if (!newTypeId || !newSizeId) return;
+
+    const exists = reviewItems.some(
+      (i) => i.clothing_type_id === newTypeId && i.size_period_id === newSizeId
+    );
+    if (exists) {
+      toast.error("Esse tipo + tamanho já existe na lista.");
+      return;
+    }
+
+    const type = clothingTypes.find((t) => t.id === newTypeId);
+    const size = sizePeriods.find((s) => s.id === newSizeId);
+    if (!type || !size) return;
+
+    setReviewItems((prev) => [
+      ...prev,
+      {
+        clothing_type_id: newTypeId,
+        clothing_type_name: type.name,
+        size_period_id: newSizeId,
+        size_name: size.name,
+        target_quantity: newQty,
+      },
+    ]);
+    setNewTypeId("");
+    setNewSizeId("");
+    setNewQty(1);
+  }
+
+  async function handleCreate() {
+    if (!name.trim()) {
+      toast.error("Preencha o nome do enxoval.");
+      return;
+    }
+    if (reviewItems.length === 0) {
+      toast.error("Adicione pelo menos um item.");
       return;
     }
 
     setLoading(true);
     try {
-      const sortedSizeIds = sizePeriods
-        .filter((s) => selectedSizeIds.has(s.id))
-        .map((s) => s.id);
-
-      for (const sId of sortedSizeIds) {
-        const sizeName = getSizeName(sId);
-        const enxovalItems = selectedTemplate.items
-          .map((item) => {
-            const qty = getQuantityForSize(item, sizeName);
-            const typeId = typeMap.get(item.clothing_type_name.toLowerCase()) || "";
-            return { clothing_type_id: typeId, target_quantity: qty };
-          })
-          .filter((i) => i.clothing_type_id && i.target_quantity > 0);
-
-        await createEnxoval({
-          name: `${selectedTemplate.name} - ${sizeName}`,
-          size_period_id: sId,
-          items: enxovalItems,
-        });
-      }
-
-      const count = selectedSizeIds.size;
-      toast.success(
-        count === 1
-          ? "Enxoval criado!"
-          : `${count} enxovais criados!`
-      );
+      await createEnxoval({
+        name: name.trim(),
+        items: reviewItems.map((i) => ({
+          clothing_type_id: i.clothing_type_id,
+          size_period_id: i.size_period_id,
+          target_quantity: i.target_quantity,
+        })),
+      });
+      toast.success("Enxoval criado!");
       router.push("/enxoval");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao criar.");
     }
     setLoading(false);
   }
+
+  // Group review items by size for display
+  const groupedBySize = sizePeriods
+    .map((size) => ({
+      size,
+      items: reviewItems
+        .map((item, index) => ({ ...item, index }))
+        .filter((item) => item.size_period_id === size.id),
+    }))
+    .filter((group) => group.items.length > 0);
 
   // Step 1: Choose template
   if (step === "choose") {
@@ -143,7 +226,7 @@ export default function NovoEnxovalPage() {
         <h1 className="text-2xl font-bold">Novo enxoval</h1>
 
         <p className="text-sm text-muted-foreground">
-          Escolha um enxoval sugerido baseado na estação do nascimento. As quantidades se ajustam por tamanho.
+          Escolha um enxoval sugerido baseado na estação do nascimento. Você pode personalizar tudo antes de criar.
         </p>
 
         <div className="space-y-3">
@@ -183,96 +266,132 @@ export default function NovoEnxovalPage() {
     );
   }
 
-  // Step 2: Select sizes for template
-  if (selectedTemplate) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setStep("choose")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Selecionar tamanhos</h1>
-        </div>
+  // Step 2: Review and edit items
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => setStep("choose")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold">Personalizar enxoval</h1>
+      </div>
 
+      {selectedTemplate && (
         <div className={`rounded-lg border-2 p-3 flex items-center gap-2 ${SEASON_COLOR[selectedTemplate.season]}`}>
           <Sparkles className="h-4 w-4 shrink-0" />
           <p className="text-sm">
-            <strong>{selectedTemplate.name}</strong> — selecione os tamanhos que deseja. Um enxoval será criado para cada tamanho.
+            Baseado na sugestão <strong>{selectedTemplate.name}</strong>. Ajuste como quiser antes de criar.
           </p>
         </div>
+      )}
 
-        <div className="space-y-2">
-          <Label>Tamanhos</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {sizePeriods.map((size) => {
-              const isSelected = selectedSizeIds.has(size.id);
-              return (
-                <Button
-                  key={size.id}
-                  type="button"
-                  variant={isSelected ? "default" : "outline"}
-                  className="h-12 text-base"
-                  onClick={() => toggleSize(size.id)}
-                >
-                  {isSelected && <Check className="mr-2 h-4 w-4" />}
-                  {size.name}
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        {selectedSizeIds.size > 0 && (
-          <div className="space-y-3">
-            <Label>Resumo dos enxovais</Label>
-            {sizePeriods
-              .filter((s) => selectedSizeIds.has(s.id))
-              .map((size) => (
-                <Card key={size.id}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">
-                      {selectedTemplate.name} - {size.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedTemplate.items
-                        .map((item) => ({
-                          name: item.clothing_type_name,
-                          qty: getQuantityForSize(item, size.name),
-                        }))
-                        .filter((i) => i.qty > 0)
-                        .map((item) => (
-                          <Badge key={item.name} variant="secondary" className="text-xs">
-                            {item.name} ({item.qty})
-                          </Badge>
-                        ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-          </div>
-        )}
-
-        <Button
-          className="w-full"
-          disabled={selectedSizeIds.size === 0 || loading}
-          onClick={handleCreateFromTemplate}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Criando...
-            </>
-          ) : selectedSizeIds.size <= 1 ? (
-            "Criar enxoval"
-          ) : (
-            `Criar ${selectedSizeIds.size} enxovais`
-          )}
-        </Button>
+      <div className="space-y-2">
+        <Label>Nome do enxoval</Label>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Ex: Enxoval de Inverno"
+        />
       </div>
-    );
-  }
 
-  return null;
+      <div className="space-y-4">
+        {groupedBySize.map(({ size, items }) => (
+          <div key={size.id} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-sm">
+                {size.name}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {items.length} {items.length === 1 ? "item" : "itens"}
+              </span>
+            </div>
+            {items.map((item) => (
+              <Card key={item.index}>
+                <CardContent className="flex items-center gap-2 p-3">
+                  <span className="flex-1 text-sm">{item.clothing_type_name}</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={item.target_quantity}
+                    onChange={(e) =>
+                      updateReviewItem(item.index, Number(e.target.value))
+                    }
+                    className="w-20"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeReviewItem(item.index)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="flex items-center gap-2 p-3">
+          <Select value={newTypeId} onValueChange={setNewTypeId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Tipo..." />
+            </SelectTrigger>
+            <SelectContent>
+              {clothingTypes.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={newSizeId} onValueChange={setNewSizeId}>
+            <SelectTrigger className="w-24">
+              <SelectValue placeholder="Tam." />
+            </SelectTrigger>
+            <SelectContent>
+              {sizePeriods.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            type="number"
+            min={1}
+            value={newQty}
+            onChange={(e) => setNewQty(Number(e.target.value))}
+            className="w-20"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={addReviewItem}
+            disabled={!newTypeId || !newSizeId}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Button
+        className="w-full"
+        disabled={reviewItems.length === 0 || loading}
+        onClick={handleCreate}
+      >
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Criando...
+          </>
+        ) : (
+          `Criar enxoval (${reviewItems.length} itens)`
+        )}
+      </Button>
+    </div>
+  );
 }

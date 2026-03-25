@@ -10,7 +10,7 @@ export default async function PresentesPage() {
 
   const { data: enxovais } = await supabase
     .from("enxovais")
-    .select("*, size_periods(*), enxoval_items(*, clothing_types(*))")
+    .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
     .order("created_at");
 
   const { data: clothes } = await supabase
@@ -30,14 +30,17 @@ export default async function PresentesPage() {
         .map(
           (item: {
             clothing_type_id: string;
+            size_period_id: string;
             target_quantity: number;
             clothing_types?: { name: string };
+            size_periods?: { name: string };
           }) => {
-            const key = `${item.clothing_type_id}-${enxoval.size_period_id}`;
+            const key = `${item.clothing_type_id}-${item.size_period_id}`;
             const current = clothesMap.get(key) || 0;
             const missing = item.target_quantity - current;
             return {
               name: item.clothing_types?.name || "",
+              sizeName: item.size_periods?.name || "",
               missing,
             };
           }
@@ -46,7 +49,6 @@ export default async function PresentesPage() {
 
       return {
         name: enxoval.name,
-        sizeName: enxoval.size_periods?.name || "",
         items,
       };
     })
@@ -78,20 +80,22 @@ export default async function PresentesPage() {
           sections.map((section, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{section.name}</CardTitle>
-                  <Badge variant="secondary">{section.sizeName}</Badge>
-                </div>
+                <CardTitle className="text-lg">{section.name}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-1">
                   {section.items.map(
-                    (item: { name: string; missing: number }, j: number) => (
+                    (item: { name: string; sizeName: string; missing: number }, j: number) => (
                       <li
                         key={j}
                         className="flex items-center justify-between text-sm py-1 border-b last:border-0"
                       >
-                        <span>{item.name}</span>
+                        <span className="flex items-center gap-2">
+                          {item.name}
+                          <Badge variant="outline" className="text-xs">
+                            {item.sizeName}
+                          </Badge>
+                        </span>
                         <span className="text-muted-foreground">
                           faltam {item.missing}
                         </span>

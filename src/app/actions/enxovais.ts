@@ -5,14 +5,13 @@ import { revalidatePath } from "next/cache";
 
 export async function createEnxoval(data: {
   name: string;
-  size_period_id: string;
-  items: { clothing_type_id: string; target_quantity: number }[];
+  items: { clothing_type_id: string; size_period_id: string; target_quantity: number }[];
 }) {
   const supabase = await createClient();
 
   const { data: enxoval, error } = await supabase
     .from("enxovais")
-    .insert({ name: data.name, size_period_id: data.size_period_id })
+    .insert({ name: data.name })
     .select()
     .single();
 
@@ -22,6 +21,7 @@ export async function createEnxoval(data: {
     const itemsToInsert = data.items.map((item) => ({
       enxoval_id: enxoval.id,
       clothing_type_id: item.clothing_type_id,
+      size_period_id: item.size_period_id,
       target_quantity: item.target_quantity,
     }));
 
@@ -56,6 +56,7 @@ export async function updateEnxovalItem(
 export async function addEnxovalItem(data: {
   enxoval_id: string;
   clothing_type_id: string;
+  size_period_id: string;
   target_quantity: number;
 }) {
   const supabase = await createClient();

@@ -13,29 +13,28 @@ export default async function EnxovalDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: enxoval }, { data: clothingTypes }] = await Promise.all([
-    supabase
-      .from("enxovais")
-      .select("*, size_periods(*), enxoval_items(*, clothing_types(*))")
-      .eq("id", id)
-      .single(),
-    supabase.from("clothing_types").select("*").order("name"),
-  ]);
+  const [{ data: enxoval }, { data: clothingTypes }, { data: sizePeriods }] =
+    await Promise.all([
+      supabase
+        .from("enxovais")
+        .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
+        .eq("id", id)
+        .single(),
+      supabase.from("clothing_types").select("*").order("name"),
+      supabase.from("size_periods").select("*").order("display_order"),
+    ]);
 
   if (!enxoval) notFound();
 
-  // Get clothes counts for this size period
+  // Get clothes counts by (type, size)
   const { data: clothes } = await supabase
     .from("clothes")
-    .select("clothing_type_id")
-    .eq("size_period_id", enxoval.size_period_id);
+    .select("clothing_type_id, size_period_id");
 
   const clothesCount = new Map<string, number>();
   (clothes || []).forEach((c) => {
-    clothesCount.set(
-      c.clothing_type_id,
-      (clothesCount.get(c.clothing_type_id) || 0) + 1
-    );
+    const key = `${c.clothing_type_id}-${c.size_period_id}`;
+    clothesCount.set(key, (clothesCount.get(key) || 0) + 1);
   });
 
   const items = enxoval.enxoval_items || [];
@@ -44,20 +43,17 @@ export default async function EnxovalDetailPage({ params }: Props) {
     0
   );
   const totalCurrent = items.reduce(
-    (sum: number, i: { clothing_type_id: string; target_quantity: number }) =>
-      sum + Math.min(clothesCount.get(i.clothing_type_id) || 0, i.target_quantity),
+    (sum: number, i: { clothing_type_id: string; size_period_id: string; target_quantity: number }) => {
+      const key = `${i.clothing_type_id}-${i.size_period_id}`;
+      return sum + Math.min(clothesCount.get(key) || 0, i.target_quantity);
+    },
     0
   );
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{enxoval.name}</h1>
-          <Badge variant="secondary" className="mt-1">
-            {enxoval.size_periods?.name}
-          </Badge>
-        </div>
+        <h1 className="text-2xl font-bold">{enxoval.name}</h1>
         <DeleteEnxovalButton id={id} />
       </div>
 
@@ -84,16 +80,27 @@ export default async function EnxovalDetailPage({ params }: Props) {
             (item: {
               id: string;
               clothing_type_id: string;
+              size_period_id: string;
               target_quantity: number;
               clothing_types?: { name: string };
-            }) => (
-              <EnxovalProgress
-                key={item.id}
-                label={item.clothing_types?.name || ""}
-                current={clothesCount.get(item.clothing_type_id) || 0}
-                target={item.target_quantity}
-              />
-            )
+              size_periods?: { name: string };
+            }) => {
+              const key = `${item.clothing_type_id}-${item.size_period_id}`;
+              return (
+                <div key={item.id} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <EnxovalProgress
+                      label={item.clothing_types?.name || ""}
+                      current={clothesCount.get(key) || 0}
+                      target={item.target_quantity}
+                    />
+                  </div>
+                  <Badge variant="outline" className="shrink-0">
+                    {item.size_periods?.name}
+                  </Badge>
+                </div>
+              );
+            }
           )
         )}
       </div>
@@ -101,13 +108,22 @@ export default async function EnxovalDetailPage({ params }: Props) {
       <EnxovalItemManager
         enxovalId={id}
         existingItems={items.map(
-          (i: { id: string; clothing_type_id: string; target_quantity: number }) => ({
+          (i: {
+            id: string;
+            clothing_type_id: string;
+            size_period_id: string;
+            target_quantity: number;
+            size_periods?: { name: string };
+          }) => ({
             id: i.id,
             clothing_type_id: i.clothing_type_id,
+            size_period_id: i.size_period_id,
+            size_name: i.size_periods?.name || "",
             target_quantity: i.target_quantity,
           })
         )}
         clothingTypes={clothingTypes || []}
+        sizePeriods={sizePeriods || []}
       />
     </div>
   );
