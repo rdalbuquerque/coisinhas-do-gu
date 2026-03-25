@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EnxovalProgress } from "@/components/enxoval-progress";
-import { EnxovalItemManager } from "./item-manager";
 import { DeleteEnxovalButton } from "./delete-button";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -13,16 +15,11 @@ export default async function EnxovalDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: enxoval }, { data: clothingTypes }, { data: sizePeriods }] =
-    await Promise.all([
-      supabase
-        .from("enxovais")
-        .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
-        .eq("id", id)
-        .single(),
-      supabase.from("clothing_types").select("*").order("name"),
-      supabase.from("size_periods").select("*").order("display_order"),
-    ]);
+  const { data: enxoval } = await supabase
+    .from("enxovais")
+    .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
+    .eq("id", id)
+    .single();
 
   if (!enxoval) notFound();
 
@@ -54,14 +51,22 @@ export default async function EnxovalDetailPage({ params }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{enxoval.name}</h1>
-        <DeleteEnxovalButton id={id} />
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/enxoval/${id}/editar`}>
+              <Pencil className="mr-1 h-4 w-4" />
+              Editar
+            </Link>
+          </Button>
+          <DeleteEnxovalButton id={id} />
+        </div>
       </div>
 
       <div className="rounded-lg border p-4 space-y-1">
         <div className="flex justify-between text-sm font-medium">
           <span>Progresso geral</span>
           <span>
-            {totalCurrent}/{totalTarget}
+            {totalCurrent}/{totalTarget} peças
           </span>
         </div>
         <EnxovalProgress
@@ -104,27 +109,6 @@ export default async function EnxovalDetailPage({ params }: Props) {
           )
         )}
       </div>
-
-      <EnxovalItemManager
-        enxovalId={id}
-        existingItems={items.map(
-          (i: {
-            id: string;
-            clothing_type_id: string;
-            size_period_id: string;
-            target_quantity: number;
-            size_periods?: { name: string };
-          }) => ({
-            id: i.id,
-            clothing_type_id: i.clothing_type_id,
-            size_period_id: i.size_period_id,
-            size_name: i.size_periods?.name || "",
-            target_quantity: i.target_quantity,
-          })
-        )}
-        clothingTypes={clothingTypes || []}
-        sizePeriods={sizePeriods || []}
-      />
     </div>
   );
 }
