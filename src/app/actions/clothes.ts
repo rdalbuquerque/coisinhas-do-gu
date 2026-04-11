@@ -1,69 +1,67 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { Season } from "@/lib/types/database";
+import { eq, sql } from "drizzle-orm";
+import { del } from "@vercel/blob";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifySession } from "@/lib/session";
+import { db } from "@/lib/db";
+import { clothes } from "@/lib/db/schema";
+import type { Season } from "@/lib/types/database";
 
-export async function createClothing(formData: {
+interface ClothingInput {
   clothing_type_id: string;
   size_period_id: string;
   season: Season;
   photo_url: string | null;
   notes: string | null;
-}) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("clothes").insert(formData);
+}
 
-  if (error) throw new Error(error.message);
+async function requireAuth() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token || !(await verifySession(token))) throw new Error("Unauthorized");
+}
 
+function revalidateClothes() {
   revalidatePath("/inventario");
   revalidatePath("/enxoval");
   revalidatePath("/presentes");
   revalidatePath("/registrar");
 }
 
-export async function updateClothing(
-  id: string,
-  formData: {
-    clothing_type_id: string;
-    size_period_id: string;
-    season: Season;
-    photo_url: string | null;
-    notes: string | null;
-  }
-) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("clothes").update(formData).eq("id", id);
+export async function createClothing(input: ClothingInput) {
+  await requireAuth();
+  await db.insert(clothes).values(input);
+  revalidateClothes();
+}
 
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/inventario");
-  revalidatePath("/enxoval");
-  revalidatePath("/presentes");
+export async function updateClothing(id: string, input: ClothingInput) {
+  await requireAuth();
+  await db
+    .update(clothes)
+    .set({ ...input, updated_at: sql`now()` })
+    .where(eq(clothes.id, id));
+  revalidateClothes();
 }
 
 export async function deleteClothing(id: string) {
-  const supabase = await createClient();
+  await requireAuth();
 
-  // Get the photo URL to delete from storage
-  const { data: clothing } = await supabase
-    .from("clothes")
-    .select("photo_url")
-    .eq("id", id)
-    .single();
+  const [existing] = await db
+    .select({ photo_url: clothes.photo_url })
+    .from(clothes)
+    .where(eq(clothes.id, id))
+    .limit(1);
 
-  if (clothing?.photo_url) {
-    const path = clothing.photo_url.split("/clothes-photos/")[1];
-    if (path) {
-      await supabase.storage.from("clothes-photos").remove([path]);
+  if (existing?.photo_url) {
+    try {
+      await del(existing.photo_url);
+    } catch {
+      // best-effort
     }
   }
 
-  const { error } = await supabase.from("clothes").delete().eq("id", id);
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/inventario");
-  revalidatePath("/enxoval");
-  revalidatePath("/presentes");
+  await db.delete(clothes).where(eq(clothes.id, id));
+  revalidateClothes();
 }

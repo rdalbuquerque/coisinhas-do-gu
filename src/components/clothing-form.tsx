@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { PhotoCapture } from "@/components/photo-capture";
 import { SEASONS } from "@/lib/constants";
 import { ClothingType, SizePeriod, Season, Clothing } from "@/lib/types/database";
-import { createClient } from "@/lib/supabase/client";
 import { createClothing, updateClothing } from "@/app/actions/clothes";
+import { uploadClothingPhoto } from "@/app/actions/photos";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -56,19 +56,9 @@ export function ClothingForm({
       // Upload new photo if it's a File or Blob (Web Worker compression
       // may return a Blob that fails instanceof File checks)
       if (photo instanceof Blob) {
-        const supabase = createClient();
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-        const contentType = photo.type || "image/jpeg";
-        const { error: uploadError } = await supabase.storage
-          .from("clothes-photos")
-          .upload(fileName, photo, { contentType });
-
-        if (uploadError) throw new Error(uploadError.message);
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("clothes-photos").getPublicUrl(fileName);
-        photoUrl = publicUrl;
+        const fd = new FormData();
+        fd.append("file", photo, "photo.jpg");
+        photoUrl = await uploadClothingPhoto(fd);
       }
 
       const formData = {

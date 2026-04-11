@@ -1,5 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
+import { clothingTypes, sizePeriods } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { EnxovalItemManager } from "../item-manager";
 import Link from "next/link";
@@ -11,18 +13,19 @@ interface Props {
 
 export default async function EditarEnxovalPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const [{ data: enxoval }, { data: clothingTypes }, { data: sizePeriods }] =
-    await Promise.all([
-      supabase
-        .from("enxovais")
-        .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
-        .eq("id", id)
-        .single(),
-      supabase.from("clothing_types").select("*").order("name"),
-      supabase.from("size_periods").select("*").order("display_order"),
-    ]);
+  const [enxoval, types, sizes] = await Promise.all([
+    db.query.enxovais.findFirst({
+      where: (e, { eq }) => eq(e.id, id),
+      with: {
+        enxoval_items: {
+          with: { clothing_types: true, size_periods: true },
+        },
+      },
+    }),
+    db.select().from(clothingTypes).orderBy(asc(clothingTypes.name)),
+    db.select().from(sizePeriods).orderBy(asc(sizePeriods.display_order)),
+  ]);
 
   if (!enxoval) notFound();
 
@@ -45,23 +48,15 @@ export default async function EditarEnxovalPage({ params }: Props) {
 
       <EnxovalItemManager
         enxovalId={id}
-        existingItems={items.map(
-          (i: {
-            id: string;
-            clothing_type_id: string;
-            size_period_id: string;
-            target_quantity: number;
-            size_periods?: { name: string };
-          }) => ({
-            id: i.id,
-            clothing_type_id: i.clothing_type_id,
-            size_period_id: i.size_period_id,
-            size_name: i.size_periods?.name || "",
-            target_quantity: i.target_quantity,
-          })
-        )}
-        clothingTypes={clothingTypes || []}
-        sizePeriods={sizePeriods || []}
+        existingItems={items.map((i) => ({
+          id: i.id,
+          clothing_type_id: i.clothing_type_id,
+          size_period_id: i.size_period_id,
+          size_name: i.size_periods?.name || "",
+          target_quantity: i.target_quantity,
+        }))}
+        clothingTypes={types}
+        sizePeriods={sizes}
       />
     </div>
   );

@@ -1,8 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { and, desc, eq, asc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { clothes, clothingTypes, sizePeriods } from "@/lib/db/schema";
 import { ClothingCard } from "@/components/clothing-card";
 import { FilterBar } from "@/components/filter-bar";
 import { InventorySummary } from "@/components/inventory-summary";
-import { Clothing } from "@/lib/types/database";
+import { Clothing, Season } from "@/lib/types/database";
 import { Suspense } from "react";
 
 interface Props {
@@ -11,25 +13,21 @@ interface Props {
 
 export default async function InventarioPage({ searchParams }: Props) {
   const params = await searchParams;
-  const supabase = await createClient();
 
-  let query = supabase
-    .from("clothes")
-    .select("*, clothing_types(*), size_periods(*)")
-    .order("created_at", { ascending: false });
+  const conditions = [];
+  if (params.tipo) conditions.push(eq(clothes.clothing_type_id, params.tipo));
+  if (params.tamanho) conditions.push(eq(clothes.size_period_id, params.tamanho));
+  if (params.estacao) conditions.push(eq(clothes.season, params.estacao as Season));
 
-  if (params.tipo) query = query.eq("clothing_type_id", params.tipo);
-  if (params.tamanho) query = query.eq("size_period_id", params.tamanho);
-  if (params.estacao) query = query.eq("season", params.estacao);
-
-  const [{ data: clothes }, { data: clothingTypes }, { data: sizePeriods }] =
-    await Promise.all([
-      query,
-      supabase.from("clothing_types").select("*").order("name"),
-      supabase.from("size_periods").select("*").order("display_order"),
-    ]);
-
-  const items = (clothes as Clothing[]) || [];
+  const [items, types, sizes] = await Promise.all([
+    db.query.clothes.findMany({
+      where: conditions.length ? and(...conditions) : undefined,
+      with: { clothing_types: true, size_periods: true },
+      orderBy: [desc(clothes.created_at)],
+    }),
+    db.select().from(clothingTypes).orderBy(asc(clothingTypes.name)),
+    db.select().from(sizePeriods).orderBy(asc(sizePeriods.display_order)),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -41,16 +39,13 @@ export default async function InventarioPage({ searchParams }: Props) {
       </div>
 
       <InventorySummary
-        items={items}
-        clothingTypes={clothingTypes || []}
-        sizePeriods={sizePeriods || []}
+        items={items as unknown as Clothing[]}
+        clothingTypes={types}
+        sizePeriods={sizes}
       />
 
       <Suspense fallback={null}>
-        <FilterBar
-          clothingTypes={clothingTypes || []}
-          sizePeriods={sizePeriods || []}
-        />
+        <FilterBar clothingTypes={types} sizePeriods={sizes} />
       </Suspense>
 
       {items.length === 0 ? (
@@ -60,7 +55,7 @@ export default async function InventarioPage({ searchParams }: Props) {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item) => (
-            <ClothingCard key={item.id} item={item} />
+            <ClothingCard key={item.id} item={item as unknown as Clothing} />
           ))}
         </div>
       )}

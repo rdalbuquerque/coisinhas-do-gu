@@ -1,5 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
+import { clothingTypes, sizePeriods } from "@/lib/db/schema";
 import { ClothingForm } from "@/components/clothing-form";
 import { Clothing } from "@/lib/types/database";
 import { DeleteClothingButton } from "./delete-button";
@@ -10,18 +12,15 @@ interface Props {
 
 export default async function ClothingDetailPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const [{ data: clothing }, { data: clothingTypes }, { data: sizePeriods }] =
-    await Promise.all([
-      supabase
-        .from("clothes")
-        .select("*, clothing_types(*), size_periods(*)")
-        .eq("id", id)
-        .single(),
-      supabase.from("clothing_types").select("*").order("name"),
-      supabase.from("size_periods").select("*").order("display_order"),
-    ]);
+  const [clothing, types, sizes] = await Promise.all([
+    db.query.clothes.findFirst({
+      where: (c, { eq }) => eq(c.id, id),
+      with: { clothing_types: true, size_periods: true },
+    }),
+    db.select().from(clothingTypes).orderBy(asc(clothingTypes.name)),
+    db.select().from(sizePeriods).orderBy(asc(sizePeriods.display_order)),
+  ]);
 
   if (!clothing) notFound();
 
@@ -32,9 +31,9 @@ export default async function ClothingDetailPage({ params }: Props) {
         <DeleteClothingButton id={id} />
       </div>
       <ClothingForm
-        clothingTypes={clothingTypes || []}
-        sizePeriods={sizePeriods || []}
-        editing={clothing as Clothing}
+        clothingTypes={types}
+        sizePeriods={sizes}
+        editing={clothing as unknown as Clothing}
       />
     </div>
   );

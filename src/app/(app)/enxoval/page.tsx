@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { desc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { clothes, enxovais } from "@/lib/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -6,24 +8,25 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 export default async function EnxovalListPage() {
-  const supabase = await createClient();
-
-  const { data: enxovais, error: enxovaisError } = await supabase
-    .from("enxovais")
-    .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
-    .order("created_at", { ascending: false });
-
-  if (enxovaisError) {
-    console.error("Enxovais query error:", enxovaisError);
-  }
-
-  // Get all clothes for counting
-  const { data: clothes } = await supabase
-    .from("clothes")
-    .select("clothing_type_id, size_period_id");
+  const [enxovaisRows, clothesRows] = await Promise.all([
+    db.query.enxovais.findMany({
+      with: {
+        enxoval_items: {
+          with: { clothing_types: true, size_periods: true },
+        },
+      },
+      orderBy: [desc(enxovais.created_at)],
+    }),
+    db
+      .select({
+        clothing_type_id: clothes.clothing_type_id,
+        size_period_id: clothes.size_period_id,
+      })
+      .from(clothes),
+  ]);
 
   const clothesMap = new Map<string, number>();
-  (clothes || []).forEach((c) => {
+  clothesRows.forEach((c) => {
     const key = `${c.clothing_type_id}-${c.size_period_id}`;
     clothesMap.set(key, (clothesMap.get(key) || 0) + 1);
   });
@@ -40,27 +43,20 @@ export default async function EnxovalListPage() {
         </Button>
       </div>
 
-      {(!enxovais || enxovais.length === 0) ? (
+      {enxovaisRows.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
           Nenhum enxoval criado ainda.
         </p>
       ) : (
         <div className="space-y-3">
-          {enxovais.map((enxoval) => {
+          {enxovaisRows.map((enxoval) => {
             const items = enxoval.enxoval_items || [];
-            const totalTarget = items.reduce(
-              (sum: number, i: { target_quantity: number }) => sum + i.target_quantity,
-              0
-            );
-            const totalCurrent = items.reduce(
-              (sum: number, i: { clothing_type_id: string; size_period_id: string; target_quantity: number }) => {
-                const key = `${i.clothing_type_id}-${i.size_period_id}`;
-                return sum + Math.min(clothesMap.get(key) || 0, i.target_quantity);
-              },
-              0
-            );
-            const percentage =
-              totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
+            const totalTarget = items.reduce((sum, i) => sum + i.target_quantity, 0);
+            const totalCurrent = items.reduce((sum, i) => {
+              const key = `${i.clothing_type_id}-${i.size_period_id}`;
+              return sum + Math.min(clothesMap.get(key) || 0, i.target_quantity);
+            }, 0);
+            const percentage = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
             return (
               <Link key={enxoval.id} href={`/enxoval/${enxoval.id}`}>

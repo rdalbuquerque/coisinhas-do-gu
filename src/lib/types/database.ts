@@ -9,7 +9,7 @@ export interface SizePeriod {
 export interface ClothingType {
   id: string;
   name: string;
-  created_at: string;
+  created_at: Date | string;
 }
 
 export interface Clothing {
@@ -19,16 +19,16 @@ export interface Clothing {
   season: Season;
   photo_url: string | null;
   notes: string | null;
-  created_at: string;
-  updated_at: string;
-  clothing_types?: ClothingType;
-  size_periods?: SizePeriod;
+  created_at: Date | string;
+  updated_at: Date | string;
+  clothing_types?: ClothingType | null;
+  size_periods?: SizePeriod | null;
 }
 
 export interface Enxoval {
   id: string;
   name: string;
-  created_at: string;
+  created_at: Date | string;
   enxoval_items?: EnxovalItem[];
 }
 

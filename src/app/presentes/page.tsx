@@ -1,56 +1,52 @@
-import { createClient } from "@/lib/supabase/server";
+import { asc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { clothes, enxovais } from "@/lib/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Baby, Gift } from "lucide-react";
 
-export const revalidate = 60; // Revalidate every minute
+export const revalidate = 60;
 
 export default async function PresentesPage() {
-  const supabase = await createClient();
-
-  const { data: enxovais } = await supabase
-    .from("enxovais")
-    .select("*, enxoval_items(*, clothing_types(*), size_periods(*))")
-    .order("created_at");
-
-  const { data: clothes } = await supabase
-    .from("clothes")
-    .select("clothing_type_id, size_period_id");
+  const [enxovaisRows, clothesRows] = await Promise.all([
+    db.query.enxovais.findMany({
+      with: {
+        enxoval_items: {
+          with: { clothing_types: true, size_periods: true },
+        },
+      },
+      orderBy: [asc(enxovais.created_at)],
+    }),
+    db
+      .select({
+        clothing_type_id: clothes.clothing_type_id,
+        size_period_id: clothes.size_period_id,
+      })
+      .from(clothes),
+  ]);
 
   const clothesMap = new Map<string, number>();
-  (clothes || []).forEach((c) => {
+  clothesRows.forEach((c) => {
     const key = `${c.clothing_type_id}-${c.size_period_id}`;
     clothesMap.set(key, (clothesMap.get(key) || 0) + 1);
   });
 
-  // Build missing items list
-  const sections = (enxovais || [])
+  const sections = enxovaisRows
     .map((enxoval) => {
       const items = (enxoval.enxoval_items || [])
-        .map(
-          (item: {
-            clothing_type_id: string;
-            size_period_id: string;
-            target_quantity: number;
-            clothing_types?: { name: string };
-            size_periods?: { name: string };
-          }) => {
-            const key = `${item.clothing_type_id}-${item.size_period_id}`;
-            const current = clothesMap.get(key) || 0;
-            const missing = item.target_quantity - current;
-            return {
-              name: item.clothing_types?.name || "",
-              sizeName: item.size_periods?.name || "",
-              missing,
-            };
-          }
-        )
-        .filter((item: { missing: number }) => item.missing > 0);
+        .map((item) => {
+          const key = `${item.clothing_type_id}-${item.size_period_id}`;
+          const current = clothesMap.get(key) || 0;
+          const missing = item.target_quantity - current;
+          return {
+            name: item.clothing_types?.name || "",
+            sizeName: item.size_periods?.name || "",
+            missing,
+          };
+        })
+        .filter((item) => item.missing > 0);
 
-      return {
-        name: enxoval.name,
-        items,
-      };
+      return { name: enxoval.name, items };
     })
     .filter((section) => section.items.length > 0);
 
@@ -84,24 +80,22 @@ export default async function PresentesPage() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-1">
-                  {section.items.map(
-                    (item: { name: string; sizeName: string; missing: number }, j: number) => (
-                      <li
-                        key={j}
-                        className="flex items-center justify-between text-sm py-1 border-b last:border-0"
-                      >
-                        <span className="flex items-center gap-2">
-                          {item.name}
-                          <Badge variant="outline" className="text-xs">
-                            {item.sizeName}
-                          </Badge>
-                        </span>
-                        <span className="text-muted-foreground">
-                          faltam {item.missing}
-                        </span>
-                      </li>
-                    )
-                  )}
+                  {section.items.map((item, j) => (
+                    <li
+                      key={j}
+                      className="flex items-center justify-between text-sm py-1 border-b last:border-0"
+                    >
+                      <span className="flex items-center gap-2">
+                        {item.name}
+                        <Badge variant="outline" className="text-xs">
+                          {item.sizeName}
+                        </Badge>
+                      </span>
+                      <span className="text-muted-foreground">
+                        faltam {item.missing}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </CardContent>
             </Card>

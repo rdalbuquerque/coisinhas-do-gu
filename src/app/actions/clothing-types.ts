@@ -1,30 +1,36 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { eq, sql } from "drizzle-orm";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifySession } from "@/lib/session";
+import { db } from "@/lib/db";
+import { clothingTypes, clothes, enxovalItems } from "@/lib/db/schema";
+
+async function requireAuth() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token || !(await verifySession(token))) throw new Error("Unauthorized");
+}
 
 export async function createClothingType(name: string) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("clothing_types").insert({ name });
-
-  if (error) {
-    if (error.code === "23505") throw new Error("Esse tipo já existe.");
-    throw new Error(error.message);
+  await requireAuth();
+  try {
+    await db.insert(clothingTypes).values({ name });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("duplicate") || msg.includes("unique")) {
+      throw new Error("Esse tipo já existe.");
+    }
+    throw err;
   }
-
   revalidatePath("/tipos");
   revalidatePath("/registrar");
 }
 
 export async function updateClothingType(id: string, name: string) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("clothing_types")
-    .update({ name })
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
-
+  await requireAuth();
+  await db.update(clothingTypes).set({ name }).where(eq(clothingTypes.id, id));
   revalidatePath("/tipos");
   revalidatePath("/registrar");
   revalidatePath("/inventario");
@@ -33,39 +39,30 @@ export async function updateClothingType(id: string, name: string) {
 export async function ensureClothingTypes(
   names: string[]
 ): Promise<{ name: string; id: string }[]> {
-  const supabase = await createClient();
+  await requireAuth();
 
-  const { data: existing } = await supabase
-    .from("clothing_types")
-    .select("id, name");
+  const existing = await db
+    .select({ id: clothingTypes.id, name: clothingTypes.name })
+    .from(clothingTypes);
 
-  const existingMap = new Map(
-    (existing || []).map((t) => [t.name.toLowerCase(), t])
-  );
+  const existingMap = new Map(existing.map((t) => [t.name.toLowerCase(), t]));
 
   const result: { name: string; id: string }[] = [];
   const toCreate: string[] = [];
 
   for (const name of names) {
     const found = existingMap.get(name.toLowerCase());
-    if (found) {
-      result.push({ name: found.name, id: found.id });
-    } else {
-      toCreate.push(name);
-    }
+    if (found) result.push({ name: found.name, id: found.id });
+    else toCreate.push(name);
   }
 
   if (toCreate.length > 0) {
-    const { data: created, error } = await supabase
-      .from("clothing_types")
-      .insert(toCreate.map((name) => ({ name })))
-      .select("id, name");
+    const created = await db
+      .insert(clothingTypes)
+      .values(toCreate.map((name) => ({ name })))
+      .returning({ id: clothingTypes.id, name: clothingTypes.name });
 
-    if (error) throw new Error(error.message);
-
-    for (const t of created || []) {
-      result.push({ name: t.name, id: t.id });
-    }
+    for (const t of created) result.push({ name: t.name, id: t.id });
 
     revalidatePath("/tipos");
     revalidatePath("/registrar");
@@ -75,35 +72,27 @@ export async function ensureClothingTypes(
 }
 
 export async function deleteClothingType(id: string) {
-  const supabase = await createClient();
+  await requireAuth();
 
-  // Check if type is in use
-  const { count } = await supabase
-    .from("clothes")
-    .select("*", { count: "exact", head: true })
-    .eq("clothing_type_id", id);
+  const [{ count: clothesCount }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(clothes)
+    .where(eq(clothes.clothing_type_id, id));
 
-  if (count && count > 0) {
-    throw new Error(`Esse tipo está em uso em ${count} peça(s). Remova as peças primeiro.`);
+  if (clothesCount > 0) {
+    throw new Error(`Esse tipo está em uso em ${clothesCount} peça(s). Remova as peças primeiro.`);
   }
 
-  // Also check enxoval_items
-  const { count: enxovalCount } = await supabase
-    .from("enxoval_items")
-    .select("*", { count: "exact", head: true })
-    .eq("clothing_type_id", id);
+  const [{ count: itemsCount }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(enxovalItems)
+    .where(eq(enxovalItems.clothing_type_id, id));
 
-  if (enxovalCount && enxovalCount > 0) {
-    throw new Error(`Esse tipo está em uso em ${enxovalCount} item(ns) de enxoval. Remova dos enxovais primeiro.`);
+  if (itemsCount > 0) {
+    throw new Error(`Esse tipo está em uso em ${itemsCount} item(ns) de enxoval. Remova dos enxovais primeiro.`);
   }
 
-  const { error } = await supabase
-    .from("clothing_types")
-    .delete()
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
-
+  await db.delete(clothingTypes).where(eq(clothingTypes.id, id));
   revalidatePath("/tipos");
   revalidatePath("/registrar");
 }

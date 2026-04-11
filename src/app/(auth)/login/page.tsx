@@ -1,41 +1,16 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { login } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Baby } from "lucide-react";
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+interface Props {
+  searchParams: Promise<{ error?: string }>;
+}
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const supabase = createClient();
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase().trim(),
-      password,
-    });
-
-    if (signInError) {
-      setError("Email ou senha incorretos.");
-    } else {
-      router.push("/registrar");
-    }
-
-    setLoading(false);
-  }
+export default async function LoginPage({ searchParams }: Props) {
+  const { error } = await searchParams;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -45,39 +20,28 @@ export default function LoginPage() {
             <Baby className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-2xl">Coisinhas do Gu</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Entre com seu email e senha
-          </p>
+          <p className="text-sm text-muted-foreground">Entre com a senha</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form action={login} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="senha">Senha</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
+                id="senha"
+                name="senha"
                 type="password"
-                placeholder="Sua senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 required
+                autoFocus
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+            <Button type="submit" className="w-full">
+              Entrar
             </Button>
             {error && (
-              <p className="text-sm text-center text-destructive">{error}</p>
+              <p className="text-sm text-center text-destructive">
+                Senha incorreta.
+              </p>
             )}
           </form>
         </CardContent>
