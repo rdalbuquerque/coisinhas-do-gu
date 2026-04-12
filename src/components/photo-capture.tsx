@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImagePlus, X } from "lucide-react";
+import { Camera, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { compressImage } from "@/lib/image-utils";
 import { PhotoLightbox } from "@/components/photo-lightbox";
@@ -14,7 +14,8 @@ interface PhotoCaptureProps {
 }
 
 export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCaptureProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(
     typeof value === "string" ? value : null
   );
@@ -41,13 +42,22 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
   function handleRemove() {
     onChange(null);
     setPreview(null);
-    if (inputRef.current) inputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
   }
 
   return (
     <div className="space-y-2">
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleChange}
+        className="hidden"
+      />
+      <input
+        ref={galleryInputRef}
         type="file"
         accept="image/*"
         onChange={handleChange}
@@ -91,18 +101,32 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
           </Button>
         </div>
       ) : (
-        <Button
-          type="button"
-          variant="outline"
-          className="flex h-32 w-full max-w-[200px] flex-col items-center justify-center gap-2 border-dashed"
-          onClick={() => inputRef.current?.click()}
-          disabled={compressing}
-        >
-          <ImagePlus className="h-8 w-8 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {compressing ? "Comprimindo..." : "Adicionar foto"}
-          </span>
-        </Button>
+        <div className="flex w-full max-w-[420px] gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex h-28 flex-1 flex-col items-center justify-center gap-1 border-dashed"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={compressing}
+          >
+            <Camera className="h-6 w-6 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {compressing ? "Comprimindo..." : "Tirar foto"}
+            </span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="flex h-28 flex-1 flex-col items-center justify-center gap-1 border-dashed"
+            onClick={() => galleryInputRef.current?.click()}
+            disabled={compressing}
+          >
+            <ImagePlus className="h-6 w-6 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {compressing ? "Comprimindo..." : "Da galeria"}
+            </span>
+          </Button>
+        </div>
       )}
     </div>
   );
