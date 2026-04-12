@@ -59,12 +59,15 @@ export default async function EnxovalDetailPage({ params }: Props) {
       target_quantity: item.target_quantity,
       type_name: item.clothing_types?.name || "",
       size_name: item.size_periods?.name || "",
-      current: Math.min(clothesCount.get(key) || 0, item.target_quantity),
+      current: clothesCount.get(key) || 0,
     };
   });
 
   const totalTarget = items.reduce((sum, i) => sum + i.target_quantity, 0);
-  const totalCurrent = items.reduce((sum, i) => sum + i.current, 0);
+  const totalCurrent = items.reduce(
+    (sum, i) => sum + Math.min(i.current, i.target_quantity),
+    0
+  );
 
   const sizeMap = new Map<string, string>();
   const typeMap = new Map<string, string>();
