@@ -35,7 +35,7 @@ export function KindToggle({ kind, basePath }: KindToggleProps) {
   }
 
   return (
-    <div className="inline-flex rounded-lg border bg-muted p-1">
+    <div className="inline-flex rounded-2xl border border-border/60 bg-muted/60 p-1">
       {OPTIONS.map((opt) => {
         const active = opt.value === kind;
         return (
@@ -44,9 +44,9 @@ export function KindToggle({ kind, basePath }: KindToggleProps) {
             type="button"
             onClick={() => select(opt.value)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-medium transition-all",
               active
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-card text-foreground shadow-soft"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >

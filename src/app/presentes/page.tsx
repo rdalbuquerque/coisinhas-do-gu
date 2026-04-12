@@ -65,16 +65,18 @@ export default async function PresentesPage() {
     .filter((section) => section.items.length > 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-secondary/10">
       <div className="mx-auto max-w-lg px-4 py-8 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-            <Baby className="h-7 w-7 text-primary" />
+        <div className="text-center space-y-3">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 shadow-soft">
+            <Baby className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Coisinhas do Gu</h1>
-          <p className="text-muted-foreground text-sm">
-            Veja o que ainda falta no enxoval do Gustavo
-          </p>
+          <div>
+            <h1 className="text-2xl font-bold">Coisinhas do Gu</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Veja o que ainda falta no enxoval do Gustavo
+            </p>
+          </div>
         </div>
 
         {sections.length === 0 ? (
