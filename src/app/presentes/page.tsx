@@ -66,12 +66,12 @@ export default async function PresentesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-lg px-4 py-8 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-            <Baby className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold">Coisinhas do Gu</h1>
+      <div className="mx-auto max-w-lg px-4 py-10 space-y-8">
+        <div className="text-center space-y-3">
+          <h1 className="text-lg font-medium uppercase tracking-[0.2em] text-foreground">
+            Coisinhas do Gu
+          </h1>
+          <div className="mx-auto h-px w-12 bg-primary/40" />
           <p className="text-muted-foreground text-sm">
             Veja o que ainda falta no enxoval do Gustavo
           </p>

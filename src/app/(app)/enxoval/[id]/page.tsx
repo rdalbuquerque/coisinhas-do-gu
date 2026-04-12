@@ -81,10 +81,10 @@ export default async function EnxovalDetailPage({ params }: Props) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-start justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold">{enxoval.name}</h1>
+        <div className="space-y-1.5">
+          <h1 className="text-lg font-medium">{enxoval.name}</h1>
           <Badge variant="secondary" className="gap-1">
             {kind === "quarto" ? (
               <BedDouble className="h-3 w-3" />
@@ -105,7 +105,7 @@ export default async function EnxovalDetailPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="rounded-lg border p-4 space-y-1">
+      <div className="rounded-lg border border-border/50 bg-card p-4 space-y-2 shadow-scandi">
         <div className="flex justify-between text-sm font-medium">
           <span>Progresso geral</span>
           <span>

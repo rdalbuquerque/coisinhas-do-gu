@@ -65,7 +65,7 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
       />
 
       {preview ? (
-        <div className="relative aspect-square w-full max-w-[200px] overflow-hidden rounded-lg border">
+        <div className="relative aspect-square w-full max-w-[200px] overflow-hidden rounded-lg border shadow-scandi">
           {preview.startsWith("blob:") ? (
             <Image
               src={preview}
@@ -105,25 +105,25 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
           <Button
             type="button"
             variant="outline"
-            className="flex h-28 flex-1 flex-col items-center justify-center gap-1 border-dashed"
+            className="flex h-28 flex-1 flex-col items-center justify-center gap-2 border border-dashed border-border bg-muted/30 hover:bg-muted/60"
             onClick={() => cameraInputRef.current?.click()}
             disabled={compressing}
           >
-            <Camera className="h-6 w-6 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              {compressing ? "Comprimindo..." : "Tirar foto"}
+            <Camera className="h-5 w-5 stroke-[1.5] text-muted-foreground" />
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">
+              {compressing ? "Comprimindo..." : "Câmera"}
             </span>
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="flex h-28 flex-1 flex-col items-center justify-center gap-1 border-dashed"
+            className="flex h-28 flex-1 flex-col items-center justify-center gap-2 border border-dashed border-border bg-muted/30 hover:bg-muted/60"
             onClick={() => galleryInputRef.current?.click()}
             disabled={compressing}
           >
-            <ImagePlus className="h-6 w-6 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              {compressing ? "Comprimindo..." : "Da galeria"}
+            <ImagePlus className="h-5 w-5 stroke-[1.5] text-muted-foreground" />
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">
+              {compressing ? "Comprimindo..." : "Galeria"}
             </span>
           </Button>
         </div>

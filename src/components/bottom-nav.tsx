@@ -28,11 +28,10 @@ export function BottomNav() {
     });
   }
 
-  // Clear pending state when navigation completes
   const activePending = isPending ? pendingHref : null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-card">
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around">
         {tabs.map(({ href, label, icon: Icon }) => {
           const isActive =
@@ -44,15 +43,15 @@ export function BottomNav() {
               href={href}
               onClick={(e) => handleNav(e, href)}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 text-xs transition-colors",
+                "flex flex-col items-center gap-1 px-3 py-2 text-[0.65rem] uppercase tracking-widest transition-colors",
                 isActive
-                  ? "text-primary font-semibold"
-                  : "text-muted-foreground"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Icon
                 className={cn(
-                  "h-5 w-5",
+                  "h-5 w-5 stroke-[1.5]",
                   isLoading && "animate-pulse"
                 )}
               />

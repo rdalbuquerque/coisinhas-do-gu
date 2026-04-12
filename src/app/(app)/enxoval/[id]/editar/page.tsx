@@ -47,7 +47,7 @@ export default async function EditarEnxovalPage({ params }: Props) {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">Editar: {enxoval.name}</h1>
+        <h1 className="text-lg font-medium">Editar: {enxoval.name}</h1>
       </div>
 
       <p className="text-sm text-muted-foreground">

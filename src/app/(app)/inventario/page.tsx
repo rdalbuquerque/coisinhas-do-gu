@@ -59,9 +59,9 @@ export default async function InventarioPage({ searchParams }: Props) {
       : `${items.length} peça${items.length !== 1 ? "s" : ""}`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">Inventário</h1>
+        <h1 className="text-lg font-medium">Inventário</h1>
         <Suspense fallback={null}>
           <KindToggle kind={kind} basePath="/inventario" />
         </Suspense>
@@ -83,11 +83,14 @@ export default async function InventarioPage({ searchParams }: Props) {
       </Suspense>
 
       {items.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">
-          {kind === "quarto"
-            ? "Nenhum item encontrado."
-            : "Nenhuma peça encontrada."}
-        </p>
+        <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+          <div className="h-12 w-12 rounded-full border-2 border-dashed border-muted-foreground/20" />
+          <p className="text-sm">
+            {kind === "quarto"
+              ? "Nenhum item encontrado."
+              : "Nenhuma peça encontrada."}
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item) => (

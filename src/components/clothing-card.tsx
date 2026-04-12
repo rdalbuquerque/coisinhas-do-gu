@@ -15,8 +15,8 @@ const seasonIcon: Record<string, React.ReactNode> = {
 export function ClothingCard({ item }: { item: Clothing }) {
   return (
     <Link href={`/inventario/${item.id}`}>
-      <Card className="overflow-hidden transition-shadow hover:shadow-md">
-        <div className="relative aspect-square bg-muted">
+      <Card className="overflow-hidden transition-all hover:shadow-scandi-lg">
+        <div className="relative aspect-square bg-muted/50">
           {item.photo_url ? (
             <Image
               src={item.photo_url}
@@ -26,12 +26,12 @@ export function ClothingCard({ item }: { item: Clothing }) {
               sizes="(max-width: 768px) 50vw, 33vw"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-              Sem foto
+            <div className="flex h-full items-center justify-center">
+              <div className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/20" />
             </div>
           )}
         </div>
-        <div className="p-2 space-y-1">
+        <div className="p-3 space-y-1.5">
           <p className="text-sm font-medium truncate">
             {item.clothing_types?.name}
           </p>
