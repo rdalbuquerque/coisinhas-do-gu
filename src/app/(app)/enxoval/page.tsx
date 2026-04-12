@@ -61,7 +61,7 @@ export default async function EnxovalListPage() {
           Nenhum enxoval criado ainda.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {enxovaisRows.map((enxoval) => {
             const kind = (enxoval.kind ?? "roupinhas") as EnxovalKind;
             const items = enxoval.enxoval_items || [];
