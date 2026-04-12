@@ -65,7 +65,7 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
       />
 
       {preview ? (
-        <div className="relative aspect-square w-full max-w-[200px] overflow-hidden rounded-lg border">
+        <div className="relative aspect-square w-full max-w-[200px] overflow-hidden rounded-2xl border shadow-soft">
           {preview.startsWith("blob:") ? (
             <Image
               src={preview}
@@ -105,24 +105,24 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
           <Button
             type="button"
             variant="outline"
-            className="flex h-28 flex-1 flex-col items-center justify-center gap-1 border-dashed"
+            className="flex h-28 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/30"
             onClick={() => cameraInputRef.current?.click()}
             disabled={compressing}
           >
-            <Camera className="h-6 w-6 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
+            <Camera className="h-6 w-6 text-primary/50" />
+            <span className="text-xs text-primary/60 font-medium">
               {compressing ? "Comprimindo..." : "Tirar foto"}
             </span>
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="flex h-28 flex-1 flex-col items-center justify-center gap-1 border-dashed"
+            className="flex h-28 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/30"
             onClick={() => galleryInputRef.current?.click()}
             disabled={compressing}
           >
-            <ImagePlus className="h-6 w-6 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
+            <ImagePlus className="h-6 w-6 text-primary/50" />
+            <span className="text-xs text-primary/60 font-medium">
               {compressing ? "Comprimindo..." : "Da galeria"}
             </span>
           </Button>

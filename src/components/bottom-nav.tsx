@@ -32,8 +32,8 @@ export function BottomNav() {
   const activePending = isPending ? pendingHref : null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card">
-      <div className="mx-auto flex h-16 max-w-lg items-center justify-around">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-card/95 backdrop-blur-md">
+      <div className="mx-auto flex h-[4.25rem] max-w-lg items-center justify-around px-2">
         {tabs.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href || pathname.startsWith(href + "/");
@@ -44,15 +44,16 @@ export function BottomNav() {
               href={href}
               onClick={(e) => handleNav(e, href)}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 text-xs transition-colors",
+                "flex flex-col items-center gap-0.5 rounded-2xl px-4 py-1.5 text-[0.65rem] font-medium transition-all",
                 isActive
-                  ? "text-primary font-semibold"
-                  : "text-muted-foreground"
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Icon
                 className={cn(
-                  "h-5 w-5",
+                  "h-[1.35rem] w-[1.35rem] transition-transform",
+                  isActive && "scale-110",
                   isLoading && "animate-pulse"
                 )}
               />

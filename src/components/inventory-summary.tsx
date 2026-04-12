@@ -35,7 +35,7 @@ export function InventorySummary({
     if (usedTypes.length === 0) return null;
 
     return (
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-2xl border bg-card shadow-soft">
         <Button
           variant="ghost"
           className="w-full flex items-center justify-between px-4 py-3 h-auto"
@@ -111,7 +111,7 @@ export function InventorySummary({
     usedTypes.reduce((sum, t) => sum + (counts[t.id]?.[sid] || 0), 0);
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="rounded-2xl border bg-card shadow-soft">
       <Button
         variant="ghost"
         className="w-full flex items-center justify-between px-4 py-3 h-auto"

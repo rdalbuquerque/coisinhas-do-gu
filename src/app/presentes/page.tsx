@@ -1,10 +1,9 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clothes, clothingTypes, enxovais } from "@/lib/db/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Baby, BedDouble, Gift } from "lucide-react";
+import { Baby } from "lucide-react";
 import { EnxovalKind } from "@/lib/types/database";
+import { PresentesList } from "./presentes-list";
 
 export const revalidate = 60;
 
@@ -65,68 +64,21 @@ export default async function PresentesPage() {
     .filter((section) => section.items.length > 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-secondary/10">
       <div className="mx-auto max-w-lg px-4 py-8 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-            <Baby className="h-7 w-7 text-primary" />
+        <div className="text-center space-y-3">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 shadow-soft">
+            <Baby className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Coisinhas do Gu</h1>
-          <p className="text-muted-foreground text-sm">
-            Veja o que ainda falta no enxoval do Gustavo
-          </p>
+          <div>
+            <h1 className="text-2xl font-bold">Coisinhas do Gu</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Veja o que ainda falta no enxoval do Gustavo
+            </p>
+          </div>
         </div>
 
-        {sections.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <Gift className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">
-                Tudo completo! Nenhum item faltando no momento.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          sections.map((section, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-lg">{section.name}</CardTitle>
-                  <Badge variant="secondary" className="gap-1 shrink-0">
-                    {section.kind === "quarto" ? (
-                      <BedDouble className="h-3 w-3" />
-                    ) : (
-                      <Baby className="h-3 w-3" />
-                    )}
-                    {section.kind === "quarto" ? "Quarto" : "Roupinhas"}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-1">
-                  {section.items.map((item, j) => (
-                    <li
-                      key={j}
-                      className="flex items-center justify-between text-sm py-1 border-b last:border-0"
-                    >
-                      <span className="flex items-center gap-2">
-                        {item.name}
-                        {item.sizeName && (
-                          <Badge variant="outline" className="text-xs">
-                            {item.sizeName}
-                          </Badge>
-                        )}
-                      </span>
-                      <span className="text-muted-foreground">
-                        faltam {item.missing}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))
-        )}
+        <PresentesList sections={sections} />
 
         <p className="text-center text-xs text-muted-foreground">
           Lista atualizada automaticamente pelos papais

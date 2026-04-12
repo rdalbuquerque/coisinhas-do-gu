@@ -45,9 +45,9 @@ export default async function EnxovalListPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Enxovais</h1>
+        <h1 className="text-xl font-bold">Enxovais</h1>
         <Button asChild size="sm">
           <Link href="/enxoval/novo">
             <Plus className="mr-1 h-4 w-4" />
@@ -61,7 +61,7 @@ export default async function EnxovalListPage() {
           Nenhum enxoval criado ainda.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-5">
           {enxovaisRows.map((enxoval) => {
             const kind = (enxoval.kind ?? "roupinhas") as EnxovalKind;
             const items = enxoval.enxoval_items || [];
@@ -75,8 +75,8 @@ export default async function EnxovalListPage() {
 
             return (
               <Link key={enxoval.id} href={`/enxoval/${enxoval.id}`}>
-                <Card className="transition-shadow hover:shadow-md">
-                  <CardHeader className="pb-2">
+                <Card className="gap-3 py-4 transition-all hover:shadow-soft-lg hover:-translate-y-0.5">
+                  <CardHeader className="pb-0">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-lg">{enxoval.name}</CardTitle>
                       <Badge variant="secondary" className="gap-1 shrink-0">
