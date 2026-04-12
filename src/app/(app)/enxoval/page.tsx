@@ -1,11 +1,17 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { clothes, enxovais } from "@/lib/db/schema";
+import { clothes, clothingTypes, enxovais } from "@/lib/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Baby, BedDouble, Plus } from "lucide-react";
+import { EnxovalKind } from "@/lib/types/database";
+
+function sizeKey(size_period_id: string | null): string {
+  return size_period_id ?? "none";
+}
 
 export default async function EnxovalListPage() {
   const [enxovaisRows, clothesRows] = await Promise.all([
@@ -21,14 +27,21 @@ export default async function EnxovalListPage() {
       .select({
         clothing_type_id: clothes.clothing_type_id,
         size_period_id: clothes.size_period_id,
+        kind: clothingTypes.kind,
       })
-      .from(clothes),
+      .from(clothes)
+      .innerJoin(clothingTypes, eq(clothes.clothing_type_id, clothingTypes.id)),
   ]);
 
-  const clothesMap = new Map<string, number>();
+  // Separate clothes maps per kind so "Manta" (roupinhas) and "Mantas" (quarto) never cross-count.
+  const clothesMaps: Record<EnxovalKind, Map<string, number>> = {
+    roupinhas: new Map(),
+    quarto: new Map(),
+  };
   clothesRows.forEach((c) => {
-    const key = `${c.clothing_type_id}-${c.size_period_id}`;
-    clothesMap.set(key, (clothesMap.get(key) || 0) + 1);
+    const key = `${c.clothing_type_id}-${sizeKey(c.size_period_id)}`;
+    const m = clothesMaps[c.kind as EnxovalKind];
+    m.set(key, (m.get(key) || 0) + 1);
   });
 
   return (
@@ -50,11 +63,13 @@ export default async function EnxovalListPage() {
       ) : (
         <div className="space-y-3">
           {enxovaisRows.map((enxoval) => {
+            const kind = (enxoval.kind ?? "roupinhas") as EnxovalKind;
             const items = enxoval.enxoval_items || [];
+            const map = clothesMaps[kind];
             const totalTarget = items.reduce((sum, i) => sum + i.target_quantity, 0);
             const totalCurrent = items.reduce((sum, i) => {
-              const key = `${i.clothing_type_id}-${i.size_period_id}`;
-              return sum + Math.min(clothesMap.get(key) || 0, i.target_quantity);
+              const key = `${i.clothing_type_id}-${sizeKey(i.size_period_id)}`;
+              return sum + Math.min(map.get(key) || 0, i.target_quantity);
             }, 0);
             const percentage = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
@@ -62,12 +77,22 @@ export default async function EnxovalListPage() {
               <Link key={enxoval.id} href={`/enxoval/${enxoval.id}`}>
                 <Card className="transition-shadow hover:shadow-md">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{enxoval.name}</CardTitle>
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-lg">{enxoval.name}</CardTitle>
+                      <Badge variant="secondary" className="gap-1 shrink-0">
+                        {kind === "quarto" ? (
+                          <BedDouble className="h-3 w-3" />
+                        ) : (
+                          <Baby className="h-3 w-3" />
+                        )}
+                        {kind === "quarto" ? "Quarto" : "Roupinhas"}
+                      </Badge>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <Progress value={percentage} className="h-2" />
                     <p className="text-sm text-muted-foreground">
-                      {totalCurrent}/{totalTarget} peças
+                      {totalCurrent}/{totalTarget} {kind === "quarto" ? "itens" : "peças"}
                     </p>
                   </CardContent>
                 </Card>

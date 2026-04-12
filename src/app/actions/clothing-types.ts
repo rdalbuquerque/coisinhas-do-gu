@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { clothingTypes, clothes, enxovalItems } from "@/lib/db/schema";
+import type { EnxovalKind } from "@/lib/types/database";
 
 async function requireAuth() {
   const cookieStore = await cookies();
@@ -13,10 +14,10 @@ async function requireAuth() {
   if (!token || !(await verifySession(token))) throw new Error("Unauthorized");
 }
 
-export async function createClothingType(name: string) {
+export async function createClothingType(name: string, kind: EnxovalKind = "roupinhas") {
   await requireAuth();
   try {
-    await db.insert(clothingTypes).values({ name });
+    await db.insert(clothingTypes).values({ name, kind });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "";
     if (msg.includes("duplicate") || msg.includes("unique")) {
@@ -37,13 +38,15 @@ export async function updateClothingType(id: string, name: string) {
 }
 
 export async function ensureClothingTypes(
-  names: string[]
+  names: string[],
+  kind: EnxovalKind = "roupinhas"
 ): Promise<{ name: string; id: string }[]> {
   await requireAuth();
 
   const existing = await db
     .select({ id: clothingTypes.id, name: clothingTypes.name })
-    .from(clothingTypes);
+    .from(clothingTypes)
+    .where(eq(clothingTypes.kind, kind));
 
   const existingMap = new Map(existing.map((t) => [t.name.toLowerCase(), t]));
 
@@ -59,7 +62,7 @@ export async function ensureClothingTypes(
   if (toCreate.length > 0) {
     const created = await db
       .insert(clothingTypes)
-      .values(toCreate.map((name) => ({ name })))
+      .values(toCreate.map((name) => ({ name, kind })))
       .returning({ id: clothingTypes.id, name: clothingTypes.name });
 
     for (const t of created) result.push({ name: t.name, id: t.id });

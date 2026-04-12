@@ -36,13 +36,17 @@ export function ClothingCard({ item }: { item: Clothing }) {
             {item.clothing_types?.name}
           </p>
           <div className="flex items-center gap-1 flex-wrap">
-            <Badge variant="secondary" className="text-xs">
-              {item.size_periods?.name}
-            </Badge>
-            <Badge variant="outline" className="text-xs gap-1">
-              {seasonIcon[item.season]}
-              {SEASON_LABELS[item.season]}
-            </Badge>
+            {item.size_periods?.name && (
+              <Badge variant="secondary" className="text-xs">
+                {item.size_periods.name}
+              </Badge>
+            )}
+            {item.clothing_types?.kind !== "quarto" && (
+              <Badge variant="outline" className="text-xs gap-1">
+                {seasonIcon[item.season]}
+                {SEASON_LABELS[item.season]}
+              </Badge>
+            )}
           </div>
         </div>
       </Card>

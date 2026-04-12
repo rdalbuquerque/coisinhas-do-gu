@@ -4,58 +4,94 @@ import { clothes, clothingTypes, sizePeriods } from "@/lib/db/schema";
 import { ClothingCard } from "@/components/clothing-card";
 import { FilterBar } from "@/components/filter-bar";
 import { InventorySummary } from "@/components/inventory-summary";
+import { KindToggle } from "@/components/kind-toggle";
 import { Clothing, Season } from "@/lib/types/database";
+import { parseEnxovalKind } from "@/lib/constants";
 import { Suspense } from "react";
 
 interface Props {
-  searchParams: Promise<{ tipo?: string; tamanho?: string; estacao?: string }>;
+  searchParams: Promise<{
+    tipo?: string;
+    tamanho?: string;
+    estacao?: string;
+    kind?: string;
+  }>;
 }
 
 export default async function InventarioPage({ searchParams }: Props) {
   const params = await searchParams;
+  const kind = parseEnxovalKind(params.kind);
 
-  const conditions = [];
+  const conditions = [eq(clothingTypes.kind, kind)];
   if (params.tipo) conditions.push(eq(clothes.clothing_type_id, params.tipo));
   if (params.tamanho) conditions.push(eq(clothes.size_period_id, params.tamanho));
   if (params.estacao) conditions.push(eq(clothes.season, params.estacao as Season));
 
-  const [items, types, sizes] = await Promise.all([
-    db.query.clothes.findMany({
-      where: conditions.length ? and(...conditions) : undefined,
-      with: { clothing_types: true, size_periods: true },
-      orderBy: [desc(clothes.created_at)],
-    }),
-    db.select().from(clothingTypes).orderBy(asc(clothingTypes.name)),
+  const [itemRows, types, sizes] = await Promise.all([
+    db
+      .select({
+        clothing: clothes,
+        clothing_type: clothingTypes,
+        size_period: sizePeriods,
+      })
+      .from(clothes)
+      .innerJoin(clothingTypes, eq(clothes.clothing_type_id, clothingTypes.id))
+      .leftJoin(sizePeriods, eq(clothes.size_period_id, sizePeriods.id))
+      .where(and(...conditions))
+      .orderBy(desc(clothes.created_at)),
+    db
+      .select()
+      .from(clothingTypes)
+      .where(eq(clothingTypes.kind, kind))
+      .orderBy(asc(clothingTypes.name)),
     db.select().from(sizePeriods).orderBy(asc(sizePeriods.display_order)),
   ]);
 
+  const items: Clothing[] = itemRows.map((row) => ({
+    ...row.clothing,
+    clothing_types: row.clothing_type,
+    size_periods: row.size_period ?? null,
+  })) as unknown as Clothing[];
+
+  const totalLabel =
+    kind === "quarto"
+      ? `${items.length} ite${items.length === 1 ? "m" : "ns"}`
+      : `${items.length} peça${items.length !== 1 ? "s" : ""}`;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Inventário</h1>
-        <span className="text-sm text-muted-foreground">
-          {items.length} peça{items.length !== 1 ? "s" : ""}
-        </span>
+        <Suspense fallback={null}>
+          <KindToggle kind={kind} basePath="/inventario" />
+        </Suspense>
+      </div>
+
+      <div className="flex items-center justify-end">
+        <span className="text-sm text-muted-foreground">{totalLabel}</span>
       </div>
 
       <InventorySummary
-        items={items as unknown as Clothing[]}
+        kind={kind}
+        items={items}
         clothingTypes={types}
         sizePeriods={sizes}
       />
 
       <Suspense fallback={null}>
-        <FilterBar clothingTypes={types} sizePeriods={sizes} />
+        <FilterBar kind={kind} clothingTypes={types} sizePeriods={sizes} />
       </Suspense>
 
       {items.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
-          Nenhuma peça encontrada.
+          {kind === "quarto"
+            ? "Nenhum item encontrado."
+            : "Nenhuma peça encontrada."}
         </p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item) => (
-            <ClothingCard key={item.id} item={item as unknown as Clothing} />
+            <ClothingCard key={item.id} item={item} />
           ))}
         </div>
       )}

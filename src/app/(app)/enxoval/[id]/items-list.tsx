@@ -4,11 +4,12 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { EnxovalProgress } from "@/components/enxoval-progress";
 import { cn } from "@/lib/utils";
+import { EnxovalKind } from "@/lib/types/database";
 
 interface ItemData {
   id: string;
   clothing_type_id: string;
-  size_period_id: string;
+  size_period_id: string | null;
   target_quantity: number;
   type_name: string;
   size_name: string;
@@ -16,12 +17,14 @@ interface ItemData {
 }
 
 interface EnxovalItemsListProps {
+  kind: EnxovalKind;
   items: ItemData[];
   sizes: { id: string; name: string }[];
   types: { id: string; name: string }[];
 }
 
-export function EnxovalItemsList({ items, sizes, types }: EnxovalItemsListProps) {
+export function EnxovalItemsList({ kind, items, sizes, types }: EnxovalItemsListProps) {
+  const isQuarto = kind === "quarto";
   const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
 
@@ -44,7 +47,9 @@ export function EnxovalItemsList({ items, sizes, types }: EnxovalItemsListProps)
   }
 
   const filtered = items.filter((item) => {
-    if (selectedSizes.size > 0 && !selectedSizes.has(item.size_period_id)) return false;
+    if (!isQuarto && selectedSizes.size > 0) {
+      if (!item.size_period_id || !selectedSizes.has(item.size_period_id)) return false;
+    }
     if (selectedTypes.size > 0 && !selectedTypes.has(item.clothing_type_id)) return false;
     return true;
   });
@@ -52,18 +57,20 @@ export function EnxovalItemsList({ items, sizes, types }: EnxovalItemsListProps)
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <div className="flex flex-wrap gap-1.5">
-          {sizes.map((s) => (
-            <Badge
-              key={s.id}
-              variant={selectedSizes.has(s.id) ? "default" : "outline"}
-              className={cn("cursor-pointer transition-colors")}
-              onClick={() => toggleSize(s.id)}
-            >
-              {s.name}
-            </Badge>
-          ))}
-        </div>
+        {!isQuarto && (
+          <div className="flex flex-wrap gap-1.5">
+            {sizes.map((s) => (
+              <Badge
+                key={s.id}
+                variant={selectedSizes.has(s.id) ? "default" : "outline"}
+                className={cn("cursor-pointer transition-colors")}
+                onClick={() => toggleSize(s.id)}
+              >
+                {s.name}
+              </Badge>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-1.5">
           {types.map((t) => (
             <Badge
@@ -90,9 +97,11 @@ export function EnxovalItemsList({ items, sizes, types }: EnxovalItemsListProps)
                 target={item.target_quantity}
               />
             </div>
-            <Badge variant="outline" className="shrink-0">
-              {item.size_name}
-            </Badge>
+            {!isQuarto && item.size_name && (
+              <Badge variant="outline" className="shrink-0">
+                {item.size_name}
+              </Badge>
+            )}
           </div>
         ))
       )}

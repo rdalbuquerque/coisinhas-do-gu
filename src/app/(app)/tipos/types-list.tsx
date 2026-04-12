@@ -21,13 +21,18 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { ClothingType } from "@/lib/types/database";
+import { ClothingType, EnxovalKind } from "@/lib/types/database";
 
 interface TypeWithCount extends ClothingType {
   usage_count: number;
 }
 
-export function TypesList({ types }: { types: TypeWithCount[] }) {
+interface TypesListProps {
+  kind: EnxovalKind;
+  types: TypeWithCount[];
+}
+
+export function TypesList({ kind, types }: TypesListProps) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<TypeWithCount | null>(null);
@@ -55,7 +60,7 @@ export function TypesList({ types }: { types: TypeWithCount[] }) {
         await updateClothingType(editingType.id, name.trim());
         toast.success("Tipo atualizado!");
       } else {
-        await createClothingType(name.trim());
+        await createClothingType(name.trim(), kind);
         toast.success("Tipo criado!");
       }
       setDialogOpen(false);
@@ -95,7 +100,10 @@ export function TypesList({ types }: { types: TypeWithCount[] }) {
                 <span className="text-sm font-medium">{type.name}</span>
                 {type.usage_count > 0 && (
                   <Badge variant="secondary" className="text-xs">
-                    {type.usage_count} peça{type.usage_count !== 1 ? "s" : ""}
+                    {type.usage_count}{" "}
+                    {kind === "quarto"
+                      ? `ite${type.usage_count !== 1 ? "ns" : "m"}`
+                      : `peça${type.usage_count !== 1 ? "s" : ""}`}
                   </Badge>
                 )}
               </div>
@@ -124,7 +132,11 @@ export function TypesList({ types }: { types: TypeWithCount[] }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingType ? "Editar tipo" : "Novo tipo de roupa"}
+              {editingType
+                ? "Editar tipo"
+                : kind === "quarto"
+                  ? "Novo tipo de item"
+                  : "Novo tipo de roupa"}
             </DialogTitle>
           </DialogHeader>
           <Input
@@ -147,7 +159,7 @@ export function TypesList({ types }: { types: TypeWithCount[] }) {
         title="Remover tipo"
         description={
           deleteTarget?.usage_count
-            ? `"${deleteTarget.name}" está em uso em ${deleteTarget.usage_count} peça(s). Remova as peças primeiro.`
+            ? `"${deleteTarget.name}" está em uso em ${deleteTarget.usage_count} ${kind === "quarto" ? "item(ns)" : "peça(s)"}. Remova ${kind === "quarto" ? "os itens" : "as peças"} primeiro.`
             : `Tem certeza que deseja remover "${deleteTarget?.name}"?`
         }
         onConfirm={handleDelete}

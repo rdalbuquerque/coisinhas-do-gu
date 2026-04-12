@@ -1,4 +1,4 @@
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { clothingTypes, sizePeriods } from "@/lib/db/schema";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EnxovalItemManager } from "../item-manager";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { EnxovalKind } from "@/lib/types/database";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -14,20 +15,27 @@ interface Props {
 export default async function EditarEnxovalPage({ params }: Props) {
   const { id } = await params;
 
-  const [enxoval, types, sizes] = await Promise.all([
-    db.query.enxovais.findFirst({
-      where: (e, { eq }) => eq(e.id, id),
-      with: {
-        enxoval_items: {
-          with: { clothing_types: true, size_periods: true },
-        },
+  const enxoval = await db.query.enxovais.findFirst({
+    where: (e, { eq }) => eq(e.id, id),
+    with: {
+      enxoval_items: {
+        with: { clothing_types: true, size_periods: true },
       },
-    }),
-    db.select().from(clothingTypes).orderBy(asc(clothingTypes.name)),
-    db.select().from(sizePeriods).orderBy(asc(sizePeriods.display_order)),
-  ]);
+    },
+  });
 
   if (!enxoval) notFound();
+
+  const kind = (enxoval.kind ?? "roupinhas") as EnxovalKind;
+
+  const [types, sizes] = await Promise.all([
+    db
+      .select()
+      .from(clothingTypes)
+      .where(eq(clothingTypes.kind, kind))
+      .orderBy(asc(clothingTypes.name)),
+    db.select().from(sizePeriods).orderBy(asc(sizePeriods.display_order)),
+  ]);
 
   const items = enxoval.enxoval_items || [];
 
@@ -47,6 +55,7 @@ export default async function EditarEnxovalPage({ params }: Props) {
       </p>
 
       <EnxovalItemManager
+        kind={kind}
         enxovalId={id}
         existingItems={items.map((i) => ({
           id: i.id,

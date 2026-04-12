@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { enxovais, enxovalItems } from "@/lib/db/schema";
+import type { EnxovalKind } from "@/lib/types/database";
 
 async function requireAuth() {
   const cookieStore = await cookies();
@@ -20,13 +21,14 @@ function revalidateEnxoval() {
 
 export async function createEnxoval(data: {
   name: string;
-  items: { clothing_type_id: string; size_period_id: string; target_quantity: number }[];
+  kind?: EnxovalKind;
+  items: { clothing_type_id: string; size_period_id: string | null; target_quantity: number }[];
 }) {
   await requireAuth();
 
   const [enxoval] = await db
     .insert(enxovais)
-    .values({ name: data.name })
+    .values({ name: data.name, kind: data.kind ?? "roupinhas" })
     .returning();
 
   if (data.items.length > 0) {
@@ -53,7 +55,7 @@ export async function updateEnxovalItem(id: string, target_quantity: number) {
 export async function addEnxovalItem(data: {
   enxoval_id: string;
   clothing_type_id: string;
-  size_period_id: string;
+  size_period_id: string | null;
   target_quantity: number;
 }) {
   await requireAuth();

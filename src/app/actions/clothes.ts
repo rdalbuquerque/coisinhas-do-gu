@@ -11,7 +11,7 @@ import type { Season } from "@/lib/types/database";
 
 interface ClothingInput {
   clothing_type_id: string;
-  size_period_id: string;
+  size_period_id: string | null;
   season: Season;
   photo_url: string | null;
   notes: string | null;

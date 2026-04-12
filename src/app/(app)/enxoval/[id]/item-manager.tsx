@@ -17,7 +17,7 @@ import {
   removeEnxovalItem,
   updateEnxovalItem,
 } from "@/app/actions/enxovais";
-import { ClothingType, SizePeriod } from "@/lib/types/database";
+import { ClothingType, EnxovalKind, SizePeriod } from "@/lib/types/database";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -26,25 +26,32 @@ import { cn } from "@/lib/utils";
 interface ExistingItem {
   id: string;
   clothing_type_id: string;
-  size_period_id: string;
+  size_period_id: string | null;
   size_name: string;
   target_quantity: number;
 }
 
 interface EnxovalItemManagerProps {
+  kind: EnxovalKind;
   enxovalId: string;
   existingItems: ExistingItem[];
   clothingTypes: ClothingType[];
   sizePeriods: SizePeriod[];
 }
 
+function keyFor(type_id: string, size_id: string | null): string {
+  return `${type_id}-${size_id ?? "none"}`;
+}
+
 export function EnxovalItemManager({
+  kind,
   enxovalId,
   existingItems,
   clothingTypes,
   sizePeriods,
 }: EnxovalItemManagerProps) {
   const router = useRouter();
+  const isQuarto = kind === "quarto";
   const [newTypeId, setNewTypeId] = useState("");
   const [newSizeId, setNewSizeId] = useState("");
   const [newQty, setNewQty] = useState(1);
@@ -53,17 +60,21 @@ export function EnxovalItemManager({
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
 
   const usedKeys = new Set(
-    existingItems.map((i) => `${i.clothing_type_id}-${i.size_period_id}`)
+    existingItems.map((i) => keyFor(i.clothing_type_id, i.size_period_id))
   );
 
   // Extract unique sizes and types from existing items
-  const presentSizeIds = new Set(existingItems.map((i) => i.size_period_id));
+  const presentSizeIds = new Set(
+    existingItems.map((i) => i.size_period_id).filter((x): x is string => !!x)
+  );
   const presentTypeIds = new Set(existingItems.map((i) => i.clothing_type_id));
   const presentSizes = sizePeriods.filter((s) => presentSizeIds.has(s.id));
   const presentTypes = clothingTypes.filter((t) => presentTypeIds.has(t.id));
 
   const filtered = existingItems.filter((item) => {
-    if (selectedSizes.size > 0 && !selectedSizes.has(item.size_period_id)) return false;
+    if (!isQuarto && selectedSizes.size > 0) {
+      if (!item.size_period_id || !selectedSizes.has(item.size_period_id)) return false;
+    }
     if (selectedTypes.size > 0 && !selectedTypes.has(item.clothing_type_id)) return false;
     return true;
   });
@@ -87,10 +98,16 @@ export function EnxovalItemManager({
   }
 
   async function handleAdd() {
-    if (!newTypeId || !newSizeId) return;
-    const key = `${newTypeId}-${newSizeId}`;
+    if (!newTypeId) return;
+    if (!isQuarto && !newSizeId) return;
+    const sizeForKey = isQuarto ? null : newSizeId;
+    const key = keyFor(newTypeId, sizeForKey);
     if (usedKeys.has(key)) {
-      toast.error("Esse tipo + tamanho já existe neste enxoval.");
+      toast.error(
+        isQuarto
+          ? "Esse tipo já existe neste enxoval."
+          : "Esse tipo + tamanho já existe neste enxoval."
+      );
       return;
     }
     setLoading("add");
@@ -98,7 +115,7 @@ export function EnxovalItemManager({
       await addEnxovalItem({
         enxoval_id: enxovalId,
         clothing_type_id: newTypeId,
-        size_period_id: newSizeId,
+        size_period_id: sizeForKey,
         target_quantity: newQty,
       });
       toast.success("Item adicionado!");
@@ -139,18 +156,20 @@ export function EnxovalItemManager({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <div className="flex flex-wrap gap-1.5">
-          {presentSizes.map((s) => (
-            <Badge
-              key={s.id}
-              variant={selectedSizes.has(s.id) ? "default" : "outline"}
-              className={cn("cursor-pointer transition-colors")}
-              onClick={() => toggleSize(s.id)}
-            >
-              {s.name}
-            </Badge>
-          ))}
-        </div>
+        {!isQuarto && (
+          <div className="flex flex-wrap gap-1.5">
+            {presentSizes.map((s) => (
+              <Badge
+                key={s.id}
+                variant={selectedSizes.has(s.id) ? "default" : "outline"}
+                className={cn("cursor-pointer transition-colors")}
+                onClick={() => toggleSize(s.id)}
+              >
+                {s.name}
+              </Badge>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-1.5">
           {presentTypes.map((t) => (
             <Badge
@@ -174,9 +193,11 @@ export function EnxovalItemManager({
             <Card key={item.id}>
               <CardContent className="flex items-center gap-2 p-3">
                 <span className="flex-1 text-sm">{type?.name}</span>
-                <Badge variant="outline" className="shrink-0">
-                  {item.size_name}
-                </Badge>
+                {!isQuarto && item.size_name && (
+                  <Badge variant="outline" className="shrink-0">
+                    {item.size_name}
+                  </Badge>
+                )}
                 <Input
                   type="number"
                   min={1}
@@ -214,18 +235,20 @@ export function EnxovalItemManager({
               ))}
             </SelectContent>
           </Select>
-          <Select value={newSizeId} onValueChange={setNewSizeId}>
-            <SelectTrigger className="w-24">
-              <SelectValue placeholder="Tam." />
-            </SelectTrigger>
-            <SelectContent>
-              {sizePeriods.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isQuarto && (
+            <Select value={newSizeId} onValueChange={setNewSizeId}>
+              <SelectTrigger className="w-24">
+                <SelectValue placeholder="Tam." />
+              </SelectTrigger>
+              <SelectContent>
+                {sizePeriods.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Input
             type="number"
             min={1}
@@ -237,7 +260,7 @@ export function EnxovalItemManager({
             variant="outline"
             size="icon"
             onClick={handleAdd}
-            disabled={!newTypeId || !newSizeId || loading === "add"}
+            disabled={!newTypeId || (!isQuarto && !newSizeId) || loading === "add"}
           >
             <Plus className="h-4 w-4" />
           </Button>

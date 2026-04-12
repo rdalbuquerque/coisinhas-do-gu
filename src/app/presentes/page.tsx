@@ -1,11 +1,16 @@
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { clothes, enxovais } from "@/lib/db/schema";
+import { clothes, clothingTypes, enxovais } from "@/lib/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Baby, Gift } from "lucide-react";
+import { Baby, BedDouble, Gift } from "lucide-react";
+import { EnxovalKind } from "@/lib/types/database";
 
 export const revalidate = 60;
+
+function sizeKey(size_period_id: string | null): string {
+  return size_period_id ?? "none";
+}
 
 export default async function PresentesPage() {
   const [enxovaisRows, clothesRows] = await Promise.all([
@@ -21,22 +26,31 @@ export default async function PresentesPage() {
       .select({
         clothing_type_id: clothes.clothing_type_id,
         size_period_id: clothes.size_period_id,
+        kind: clothingTypes.kind,
       })
-      .from(clothes),
+      .from(clothes)
+      .innerJoin(clothingTypes, eq(clothes.clothing_type_id, clothingTypes.id)),
   ]);
 
-  const clothesMap = new Map<string, number>();
+  // Per-kind clothes maps to keep Roupinhas and Quarto counts separate.
+  const clothesMaps: Record<EnxovalKind, Map<string, number>> = {
+    roupinhas: new Map(),
+    quarto: new Map(),
+  };
   clothesRows.forEach((c) => {
-    const key = `${c.clothing_type_id}-${c.size_period_id}`;
-    clothesMap.set(key, (clothesMap.get(key) || 0) + 1);
+    const key = `${c.clothing_type_id}-${sizeKey(c.size_period_id)}`;
+    const m = clothesMaps[c.kind as EnxovalKind];
+    m.set(key, (m.get(key) || 0) + 1);
   });
 
   const sections = enxovaisRows
     .map((enxoval) => {
+      const kind = (enxoval.kind ?? "roupinhas") as EnxovalKind;
+      const map = clothesMaps[kind];
       const items = (enxoval.enxoval_items || [])
         .map((item) => {
-          const key = `${item.clothing_type_id}-${item.size_period_id}`;
-          const current = clothesMap.get(key) || 0;
+          const key = `${item.clothing_type_id}-${sizeKey(item.size_period_id)}`;
+          const current = map.get(key) || 0;
           const missing = item.target_quantity - current;
           return {
             name: item.clothing_types?.name || "",
@@ -46,7 +60,7 @@ export default async function PresentesPage() {
         })
         .filter((item) => item.missing > 0);
 
-      return { name: enxoval.name, items };
+      return { name: enxoval.name, kind, items };
     })
     .filter((section) => section.items.length > 0);
 
@@ -76,7 +90,17 @@ export default async function PresentesPage() {
           sections.map((section, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{section.name}</CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-lg">{section.name}</CardTitle>
+                  <Badge variant="secondary" className="gap-1 shrink-0">
+                    {section.kind === "quarto" ? (
+                      <BedDouble className="h-3 w-3" />
+                    ) : (
+                      <Baby className="h-3 w-3" />
+                    )}
+                    {section.kind === "quarto" ? "Quarto" : "Roupinhas"}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-1">
@@ -87,9 +111,11 @@ export default async function PresentesPage() {
                     >
                       <span className="flex items-center gap-2">
                         {item.name}
-                        <Badge variant="outline" className="text-xs">
-                          {item.sizeName}
-                        </Badge>
+                        {item.sizeName && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.sizeName}
+                          </Badge>
+                        )}
                       </span>
                       <span className="text-muted-foreground">
                         faltam {item.missing}

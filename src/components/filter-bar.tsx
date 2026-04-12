@@ -8,15 +8,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ClothingType, SizePeriod } from "@/lib/types/database";
+import { ClothingType, EnxovalKind, SizePeriod } from "@/lib/types/database";
 import { SEASONS } from "@/lib/constants";
 
 interface FilterBarProps {
+  kind: EnxovalKind;
   clothingTypes: ClothingType[];
   sizePeriods: SizePeriod[];
 }
 
-export function FilterBar({ clothingTypes, sizePeriods }: FilterBarProps) {
+export function FilterBar({ kind, clothingTypes, sizePeriods }: FilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -29,6 +30,8 @@ export function FilterBar({ clothingTypes, sizePeriods }: FilterBarProps) {
     }
     router.push(`/inventario?${params.toString()}`);
   }
+
+  const isQuarto = kind === "quarto";
 
   return (
     <div className="flex gap-2 flex-wrap">
@@ -49,39 +52,43 @@ export function FilterBar({ clothingTypes, sizePeriods }: FilterBarProps) {
         </SelectContent>
       </Select>
 
-      <Select
-        value={searchParams.get("tamanho") || "all"}
-        onValueChange={(v) => setFilter("tamanho", v)}
-      >
-        <SelectTrigger className="w-[100px]">
-          <SelectValue placeholder="Tamanho" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          {sizePeriods.map((s) => (
-            <SelectItem key={s.id} value={s.id}>
-              {s.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {!isQuarto && (
+        <>
+          <Select
+            value={searchParams.get("tamanho") || "all"}
+            onValueChange={(v) => setFilter("tamanho", v)}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue placeholder="Tamanho" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {sizePeriods.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-      <Select
-        value={searchParams.get("estacao") || "all"}
-        onValueChange={(v) => setFilter("estacao", v)}
-      >
-        <SelectTrigger className="w-[120px]">
-          <SelectValue placeholder="Estação" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          {SEASONS.map((s) => (
-            <SelectItem key={s.value} value={s.value}>
-              {s.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          <Select
+            value={searchParams.get("estacao") || "all"}
+            onValueChange={(v) => setFilter("estacao", v)}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Estação" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {SEASONS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
     </div>
   );
 }

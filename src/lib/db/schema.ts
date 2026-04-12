@@ -14,26 +14,35 @@ import { relations } from "drizzle-orm";
 
 export const seasonEnum = pgEnum("season", ["verao", "inverno", "neutro"]);
 
+export const enxovalKindEnum = pgEnum("enxoval_kind", ["roupinhas", "quarto"]);
+
 export const sizePeriods = pgTable("size_periods", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   display_order: integer("display_order").notNull().default(0),
 });
 
-export const clothingTypes = pgTable("clothing_types", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull().unique(),
-  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const clothingTypes = pgTable(
+  "clothing_types",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    kind: enxovalKindEnum("kind").notNull().default("roupinhas"),
+    created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqNameKind: unique("clothing_types_name_kind_unique").on(t.name, t.kind),
+  })
+);
 
 export const clothes = pgTable("clothes", {
   id: uuid("id").primaryKey().defaultRandom(),
   clothing_type_id: uuid("clothing_type_id")
     .notNull()
     .references(() => clothingTypes.id, { onDelete: "restrict" }),
-  size_period_id: uuid("size_period_id")
-    .notNull()
-    .references(() => sizePeriods.id, { onDelete: "restrict" }),
+  size_period_id: uuid("size_period_id").references(() => sizePeriods.id, {
+    onDelete: "restrict",
+  }),
   season: seasonEnum("season").notNull().default("neutro"),
   photo_url: text("photo_url"),
   notes: text("notes"),
@@ -44,6 +53,7 @@ export const clothes = pgTable("clothes", {
 export const enxovais = pgTable("enxovais", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  kind: enxovalKindEnum("kind").notNull().default("roupinhas"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -57,9 +67,9 @@ export const enxovalItems = pgTable(
     clothing_type_id: uuid("clothing_type_id")
       .notNull()
       .references(() => clothingTypes.id, { onDelete: "restrict" }),
-    size_period_id: uuid("size_period_id")
-      .notNull()
-      .references(() => sizePeriods.id, { onDelete: "restrict" }),
+    size_period_id: uuid("size_period_id").references(() => sizePeriods.id, {
+      onDelete: "restrict",
+    }),
     target_quantity: integer("target_quantity").notNull().default(1),
   },
   (t) => ({
