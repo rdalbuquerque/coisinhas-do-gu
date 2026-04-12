@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, X } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { compressImage } from "@/lib/image-utils";
+import { PhotoLightbox } from "@/components/photo-lightbox";
 import Image from "next/image";
 
 interface PhotoCaptureProps {
@@ -49,25 +50,41 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleChange}
         className="hidden"
       />
 
       {preview ? (
         <div className="relative aspect-square w-full max-w-[200px] overflow-hidden rounded-lg border">
-          <Image
-            src={preview}
-            alt="Prévia"
-            fill
-            className="object-cover"
-            unoptimized={preview.startsWith("blob:")}
-          />
+          {preview.startsWith("blob:") ? (
+            <Image
+              src={preview}
+              alt="Prévia"
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          ) : (
+            <PhotoLightbox src={preview} alt="Foto">
+              <button
+                type="button"
+                className="absolute inset-0 cursor-zoom-in"
+                aria-label="Ver foto em tamanho maior"
+              >
+                <Image
+                  src={preview}
+                  alt="Prévia"
+                  fill
+                  className="object-cover"
+                />
+              </button>
+            </PhotoLightbox>
+          )}
           <Button
             type="button"
             variant="destructive"
             size="icon"
-            className="absolute right-1 top-1 h-6 w-6"
+            className="absolute right-1 top-1 z-10 h-6 w-6"
             onClick={handleRemove}
           >
             <X className="h-4 w-4" />
@@ -81,9 +98,9 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
           onClick={() => inputRef.current?.click()}
           disabled={compressing}
         >
-          <Camera className="h-8 w-8 text-muted-foreground" />
+          <ImagePlus className="h-8 w-8 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            {compressing ? "Comprimindo..." : "Tirar foto"}
+            {compressing ? "Comprimindo..." : "Adicionar foto"}
           </span>
         </Button>
       )}
