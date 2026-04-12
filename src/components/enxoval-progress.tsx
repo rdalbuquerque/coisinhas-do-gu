@@ -1,4 +1,5 @@
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface EnxovalProgressProps {
   label: string;
@@ -11,16 +12,19 @@ export function EnxovalProgress({ label, current, target }: EnxovalProgressProps
   const complete = current >= target;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
-        <span className={complete ? "text-green-600 font-medium" : ""}>
+        <span className={cn(complete && "text-primary font-medium")}>
           {label}
         </span>
-        <span className={`text-xs ${complete ? "text-green-600" : "text-muted-foreground"}`}>
+        <span className={cn(
+          "text-xs tabular-nums",
+          complete ? "text-primary" : "text-muted-foreground"
+        )}>
           {current}/{target}
         </span>
       </div>
-      <Progress value={percentage} className="h-2" />
+      <Progress value={percentage} className="h-1.5" />
     </div>
   );
 }

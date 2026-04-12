@@ -29,9 +29,9 @@ export default async function TiposPage({ searchParams }: Props) {
     .orderBy(asc(clothingTypes.name));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-lg font-medium">
           {kind === "quarto" ? "Tipos de item" : "Tipos de roupa"}
         </h1>
         <Suspense fallback={null}>

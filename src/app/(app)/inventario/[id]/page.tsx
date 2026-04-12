@@ -34,7 +34,7 @@ export default async function ClothingDetailPage({ params }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-lg font-medium">
           {kind === "quarto" ? "Editar item" : "Editar peça"}
         </h1>
         <DeleteClothingButton id={id} />

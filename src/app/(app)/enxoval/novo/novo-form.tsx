@@ -53,10 +53,10 @@ const TEMPLATE_ICON: Record<string, React.ReactNode> = {
 };
 
 const TEMPLATE_COLOR: Record<string, string> = {
-  inverno: "bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800",
-  verao: "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800",
-  "meia-estacao": "bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800",
-  quarto: "bg-purple-50 border-purple-200 dark:bg-purple-950 dark:border-purple-800",
+  inverno: "bg-slate-50/80 border-slate-200/50",
+  verao: "bg-amber-50/60 border-amber-200/40",
+  "meia-estacao": "bg-stone-50/80 border-stone-200/50",
+  quarto: "bg-neutral-50/80 border-neutral-200/50",
 };
 
 function templateKey(t: SuggestedEnxoval): string {
@@ -249,7 +249,7 @@ export function NovoEnxovalForm({ initialClothingTypes, initialSizePeriods }: Pr
   if (step === "choose") {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Novo enxoval</h1>
+        <h1 className="text-lg font-medium">Novo enxoval</h1>
 
         <p className="text-sm text-muted-foreground">
           Escolha um enxoval sugerido. Você pode personalizar tudo antes de criar.
@@ -262,7 +262,7 @@ export function NovoEnxovalForm({ initialClothingTypes, initialSizePeriods }: Pr
             return (
               <Card
                 key={template.id}
-                className={`cursor-pointer border-2 transition-all hover:shadow-md ${TEMPLATE_COLOR[key]} ${loading ? "pointer-events-none opacity-60" : ""} ${isLoading ? "!opacity-100 ring-2 ring-primary" : ""}`}
+                className={`cursor-pointer border-2 transition-all hover:shadow-scandi-lg ${TEMPLATE_COLOR[key]} ${loading ? "pointer-events-none opacity-60" : ""} ${isLoading ? "!opacity-100 ring-2 ring-primary" : ""}`}
                 onClick={() => !loading && selectTemplate(template)}
               >
                 <CardHeader className="pb-2">
@@ -303,7 +303,7 @@ export function NovoEnxovalForm({ initialClothingTypes, initialSizePeriods }: Pr
         <Button variant="ghost" size="icon" onClick={() => setStep("choose")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Personalizar enxoval</h1>
+        <h1 className="text-lg font-medium">Personalizar enxoval</h1>
       </div>
 
       {selectedTemplate && (
