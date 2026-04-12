@@ -56,7 +56,7 @@ const TEMPLATE_COLOR: Record<string, string> = {
   inverno: "bg-sky-50/80 border-sky-200/60",
   verao: "bg-amber-50/80 border-amber-200/60",
   "meia-estacao": "bg-emerald-50/80 border-emerald-200/60",
-  quarto: "bg-violet-50/80 border-violet-200/60",
+  quarto: "bg-indigo-50/80 border-indigo-200/60",
 };
 
 function templateKey(t: SuggestedEnxoval): string {
