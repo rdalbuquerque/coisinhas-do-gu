@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clothes, clothingTypes, enxovais } from "@/lib/db/schema";
-import { Baby } from "lucide-react";
+import Image from "next/image";
 import { EnxovalKind } from "@/lib/types/database";
 import { PresentesList } from "./presentes-list";
 
@@ -67,9 +67,14 @@ export default async function PresentesPage() {
     <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-secondary/10">
       <div className="mx-auto max-w-lg px-4 py-8 space-y-6">
         <div className="text-center space-y-3">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 shadow-soft">
-            <Baby className="h-8 w-8 text-primary" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Coisinhas do Gu"
+            width={96}
+            height={96}
+            priority
+            className="mx-auto h-24 w-24"
+          />
           <div>
             <h1 className="text-2xl font-bold">Coisinhas do Gu</h1>
             <p className="text-muted-foreground text-sm mt-1">

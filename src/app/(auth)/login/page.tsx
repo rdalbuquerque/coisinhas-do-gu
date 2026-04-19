@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Baby } from "lucide-react";
+import Image from "next/image";
 
 interface Props {
   searchParams: Promise<{ error?: string }>;
@@ -15,9 +15,14 @@ export default async function LoginPage({ searchParams }: Props) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-primary/5 via-background to-secondary/10">
       <div className="mb-6 flex flex-col items-center gap-3">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 shadow-soft">
-          <Baby className="h-8 w-8 text-primary" />
-        </div>
+        <Image
+          src="/logo.png"
+          alt="Coisinhas do Gu"
+          width={96}
+          height={96}
+          priority
+          className="h-24 w-24"
+        />
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground">Coisinhas do Gu</h1>
           <p className="text-sm text-muted-foreground mt-1">
