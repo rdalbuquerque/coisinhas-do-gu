@@ -3,6 +3,7 @@ import { Nunito } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { IosInstallPrompt } from "@/components/ios-install-prompt";
+import { AndroidInstallPrompt } from "@/components/android-install-prompt";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -41,6 +42,7 @@ export default function RootLayout({
         <Toaster position="top-center" richColors />
         <ServiceWorkerRegister />
         <IosInstallPrompt />
+        <AndroidInstallPrompt />
       </body>
     </html>
   );
