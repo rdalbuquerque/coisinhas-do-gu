@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { compressImage } from "@/lib/image-utils";
@@ -20,6 +20,14 @@ export function PhotoCapture({ value, onChange, onCompressingChange }: PhotoCapt
     typeof value === "string" ? value : null
   );
   const [compressing, setCompressing] = useState(false);
+
+  useEffect(() => {
+    if (value === null) {
+      setPreview(null);
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
+    }
+  }, [value]);
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
