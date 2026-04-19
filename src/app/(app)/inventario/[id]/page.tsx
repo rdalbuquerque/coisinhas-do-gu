@@ -1,12 +1,10 @@
 import { asc, eq } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/db";
 import { clothingTypes, sizePeriods } from "@/lib/db/schema";
 import { ClothingForm } from "@/components/clothing-form";
-import { Button } from "@/components/ui/button";
 import { Clothing } from "@/lib/types/database";
+import { BackButton } from "./back-button";
 import { DeleteClothingButton } from "./delete-button";
 
 interface Props {
@@ -38,11 +36,7 @@ export default async function ClothingDetailPage({ params }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="icon">
-            <Link href={`/inventario?kind=${kind}`} aria-label="Voltar">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
+          <BackButton fallbackHref={`/inventario?kind=${kind}`} />
           <h1 className="text-xl font-bold">
             {kind === "quarto" ? "Editar item" : "Editar peça"}
           </h1>
