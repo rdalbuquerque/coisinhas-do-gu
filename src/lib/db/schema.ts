@@ -16,6 +16,22 @@ export const seasonEnum = pgEnum("season", ["verao", "inverno", "neutro"]);
 
 export const enxovalKindEnum = pgEnum("enxoval_kind", ["roupinhas", "quarto"]);
 
+export const clothingColorEnum = pgEnum("clothing_color", [
+  "branco",
+  "preto",
+  "cinza",
+  "bege",
+  "marrom",
+  "vermelho",
+  "rosa",
+  "laranja",
+  "amarelo",
+  "verde",
+  "azul",
+  "roxo",
+  "estampado",
+]);
+
 export const sizePeriods = pgTable("size_periods", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -44,6 +60,7 @@ export const clothes = pgTable("clothes", {
     onDelete: "restrict",
   }),
   season: seasonEnum("season").notNull().default("neutro"),
+  color: clothingColorEnum("color"),
   photo_url: text("photo_url"),
   notes: text("notes"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

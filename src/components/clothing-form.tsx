@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,16 +12,21 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { PhotoCapture } from "@/components/photo-capture";
+import { ColorChip, type ColorStatus } from "@/components/color-chip";
 import { SEASONS } from "@/lib/constants";
 import {
   ClothingType,
   SizePeriod,
   Season,
   Clothing,
+  ClothingColor,
   EnxovalKind,
 } from "@/lib/types/database";
 import { createClothing, updateClothing } from "@/app/actions/clothes";
-import { uploadClothingPhoto } from "@/app/actions/photos";
+import {
+  detectClothingColor,
+  uploadClothingPhoto,
+} from "@/app/actions/photos";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -49,8 +54,45 @@ export function ClothingForm({
   const [sizeId, setSizeId] = useState(editing?.size_period_id || "");
   const [season, setSeason] = useState<Season>(editing?.season || "neutro");
   const [notes, setNotes] = useState(editing?.notes || "");
+  const [color, setColor] = useState<ClothingColor | null>(
+    editing?.color ?? null
+  );
+  const [colorStatus, setColorStatus] = useState<ColorStatus>(
+    editing?.color ? "ready" : "idle"
+  );
   const [loading, setLoading] = useState(false);
   const [compressing, setCompressing] = useState(false);
+  const detectionTokenRef = useRef(0);
+
+  function handlePhotoChange(next: Blob | null) {
+    setPhoto(next);
+    if (isQuarto) return;
+
+    // New photo picked → kick off detection in parallel with the form.
+    // Null (photo removed) → cancel any in-flight detection and reset.
+    if (next instanceof Blob) {
+      const token = ++detectionTokenRef.current;
+      setColorStatus("detecting");
+
+      const fd = new FormData();
+      fd.append("file", next, "photo.jpg");
+
+      detectClothingColor(fd)
+        .then((detected) => {
+          if (token !== detectionTokenRef.current) return;
+          setColor(detected);
+          setColorStatus("ready");
+        })
+        .catch(() => {
+          if (token !== detectionTokenRef.current) return;
+          setColorStatus("error");
+        });
+    } else if (next === null) {
+      detectionTokenRef.current++;
+      setColor(null);
+      setColorStatus("idle");
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,6 +121,7 @@ export function ClothingForm({
         clothing_type_id: typeId,
         size_period_id: isQuarto ? null : sizeId,
         season: isQuarto ? ("neutro" as const) : season,
+        color: isQuarto ? null : color,
         photo_url: photoUrl,
         notes: notes.trim() || null,
       };
@@ -96,6 +139,8 @@ export function ClothingForm({
         setSizeId("");
         setSeason("neutro");
         setNotes("");
+        setColor(null);
+        setColorStatus("idle");
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar.");
@@ -107,8 +152,15 @@ export function ClothingForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label>Foto</Label>
-        <PhotoCapture value={photo} onChange={setPhoto} onCompressingChange={setCompressing} />
+        <PhotoCapture value={photo} onChange={handlePhotoChange} onCompressingChange={setCompressing} />
       </div>
+
+      {!isQuarto && (
+        <div className="space-y-2">
+          <Label>Cor</Label>
+          <ColorChip value={color} status={colorStatus} onChange={setColor} />
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>{isQuarto ? "Tipo de item" : "Tipo de roupa"}</Label>

@@ -9,7 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ClothingType, EnxovalKind, SizePeriod } from "@/lib/types/database";
-import { SEASONS } from "@/lib/constants";
+import { CLOTHING_COLORS, SEASONS } from "@/lib/constants";
+import { ColorSwatch } from "@/components/color-chip";
 
 interface FilterBarProps {
   kind: EnxovalKind;
@@ -83,6 +84,26 @@ export function FilterBar({ kind, clothingTypes, sizePeriods }: FilterBarProps) 
               {SEASONS.map((s) => (
                 <SelectItem key={s.value} value={s.value}>
                   {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={searchParams.get("cor") || "all"}
+            onValueChange={(v) => setFilter("cor", v)}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Cor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as cores</SelectItem>
+              {CLOTHING_COLORS.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  <span className="inline-flex items-center gap-2">
+                    <ColorSwatch color={c.value} />
+                    {c.label}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

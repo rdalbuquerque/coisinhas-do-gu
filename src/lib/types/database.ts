@@ -2,6 +2,21 @@ export type Season = "verao" | "inverno" | "neutro";
 
 export type EnxovalKind = "roupinhas" | "quarto";
 
+export type ClothingColor =
+  | "branco"
+  | "preto"
+  | "cinza"
+  | "bege"
+  | "marrom"
+  | "vermelho"
+  | "rosa"
+  | "laranja"
+  | "amarelo"
+  | "verde"
+  | "azul"
+  | "roxo"
+  | "estampado";
+
 export interface SizePeriod {
   id: string;
   name: string;
@@ -20,6 +35,7 @@ export interface Clothing {
   clothing_type_id: string;
   size_period_id: string | null;
   season: Season;
+  color: ClothingColor | null;
   photo_url: string | null;
   notes: string | null;
   created_at: Date | string;

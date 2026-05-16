@@ -5,7 +5,7 @@ import { ClothingCard } from "@/components/clothing-card";
 import { FilterBar } from "@/components/filter-bar";
 import { InventorySummary } from "@/components/inventory-summary";
 import { KindToggle } from "@/components/kind-toggle";
-import { Clothing, Season } from "@/lib/types/database";
+import { Clothing, ClothingColor, Season } from "@/lib/types/database";
 import { parseEnxovalKind } from "@/lib/constants";
 import { Suspense } from "react";
 import { LayoutGrid } from "lucide-react";
@@ -15,6 +15,7 @@ interface Props {
     tipo?: string;
     tamanho?: string;
     estacao?: string;
+    cor?: string;
     kind?: string;
   }>;
 }
@@ -27,6 +28,7 @@ export default async function InventarioPage({ searchParams }: Props) {
   if (params.tipo) conditions.push(eq(clothes.clothing_type_id, params.tipo));
   if (params.tamanho) conditions.push(eq(clothes.size_period_id, params.tamanho));
   if (params.estacao) conditions.push(eq(clothes.season, params.estacao as Season));
+  if (params.cor) conditions.push(eq(clothes.color, params.cor as ClothingColor));
 
   const [itemRows, types, sizes] = await Promise.all([
     db

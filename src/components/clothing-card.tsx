@@ -3,7 +3,8 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Clothing } from "@/lib/types/database";
-import { SEASON_LABELS } from "@/lib/constants";
+import { CLOTHING_COLOR_LABELS, SEASON_LABELS } from "@/lib/constants";
+import { ColorSwatch } from "@/components/color-chip";
 import { Sun, Snowflake, Circle, Shirt } from "lucide-react";
 
 const seasonIcon: Record<string, React.ReactNode> = {
@@ -46,6 +47,16 @@ export function ClothingCard({ item }: { item: Clothing }) {
               <Badge variant="outline" className="text-xs gap-1">
                 {seasonIcon[item.season]}
                 {SEASON_LABELS[item.season]}
+              </Badge>
+            )}
+            {item.clothing_types?.kind !== "quarto" && item.color && (
+              <Badge
+                variant="outline"
+                className="text-xs gap-1"
+                title={CLOTHING_COLOR_LABELS[item.color]}
+              >
+                <ColorSwatch color={item.color} size={10} />
+                {CLOTHING_COLOR_LABELS[item.color]}
               </Badge>
             )}
           </div>

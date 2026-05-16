@@ -7,12 +7,13 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { clothes } from "@/lib/db/schema";
-import type { Season } from "@/lib/types/database";
+import type { ClothingColor, Season } from "@/lib/types/database";
 
 interface ClothingInput {
   clothing_type_id: string;
   size_period_id: string | null;
   season: Season;
+  color: ClothingColor | null;
   photo_url: string | null;
   notes: string | null;
 }
